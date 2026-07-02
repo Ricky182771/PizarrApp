@@ -1158,9 +1158,7 @@ function App() {
         </main>
         <nav className="shrink-0 bg-surface-800/90 backdrop-blur-md border-t border-white/5 px-2 py-2 safe-area-pb select-none" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
           <div className="flex items-center justify-around gap-1">
-            <div className="flex items-center bg-surface-900/50 p-1 rounded-xl border border-border">
-              <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} className="border-none p-0" />
-            </div>
+            <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} isMobile={true} />
             <div className="relative">
               <button
                 onClick={() => { setIsTeamConfigOpen(!isTeamConfigOpen); setIsExportOpen(false); setIsShareOpen(false) }}
@@ -1283,9 +1281,7 @@ function App() {
             </span>
           </div>
         </div>
-        <div className="flex items-center bg-surface-900/50 p-1 rounded-xl border border-border shadow-inner">
-          <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} className="border-none p-0" />
-        </div>
+        <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} isMobile={false} />
         <div className="flex items-center gap-2">
           <div className="relative">
             <button
