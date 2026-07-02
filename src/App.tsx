@@ -1173,8 +1173,8 @@ function App() {
               </button>
               {isTeamConfigOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsTeamConfigOpen(false)} />
-                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div className="fixed inset-0 z-[90]" onClick={() => setIsTeamConfigOpen(false)} />
+                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-[100] animate-in fade-in slide-in-from-bottom-2 duration-150">
                     <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-secondary mb-3 flex items-center gap-1.5">
                       <Users size={12} /> Alineaciones y Equipos
                     </h3>
@@ -1199,8 +1199,8 @@ function App() {
               </button>
               {isExportOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsExportOpen(false)} />
-                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-20 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div className="fixed inset-0 z-[90]" onClick={() => setIsExportOpen(false)} />
+                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-[100] animate-in fade-in slide-in-from-bottom-2 duration-150">
                     {exportContent}
                   </div>
                 </>
@@ -1216,8 +1216,8 @@ function App() {
               </button>
               {isShareOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsShareOpen(false)} />
-                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div className="fixed inset-0 z-[90]" onClick={() => setIsShareOpen(false)} />
+                  <div className="popover-mobile rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-[100] animate-in fade-in slide-in-from-bottom-2 duration-150">
                     {shareContent}
                   </div>
                 </>
@@ -1241,7 +1241,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-dvh">
-      <header className="sticky top-0 z-50 flex items-center justify-between gap-4 px-6 py-2.5 bg-surface-800/60 backdrop-blur-md border-b border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.2)] select-none animate-in fade-in duration-300">
+      <header className="sticky top-0 z-[100] flex items-center justify-between gap-4 px-6 py-2.5 bg-surface-800/60 backdrop-blur-md border-b border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.2)] select-none animate-in fade-in duration-300">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-500/25 shrink-0">
             <svg
@@ -1300,8 +1300,8 @@ function App() {
             </button>
             {isTeamConfigOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsTeamConfigOpen(false)} />
-                <div className="absolute right-0 mt-2 w-[320px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
+                <div className="fixed inset-0 z-[90]" onClick={() => setIsTeamConfigOpen(false)} />
+                <div className="absolute right-0 mt-2 w-[320px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-150 select-none">
                   <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-secondary mb-3 flex items-center gap-1.5">
                     <Users size={12} /> Alineaciones y Equipos
                   </h3>
@@ -1343,8 +1343,8 @@ function App() {
             </button>
             {isExportOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsExportOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="fixed inset-0 z-[90]" onClick={() => setIsExportOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-150">
                   {exportContent}
                 </div>
               </>
@@ -1363,8 +1363,8 @@ function App() {
             </button>
             {isShareOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsShareOpen(false)} />
-                <div className="absolute right-0 mt-2 w-[340px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
+                <div className="fixed inset-0 z-[90]" onClick={() => setIsShareOpen(false)} />
+                <div className="absolute right-0 mt-2 w-[340px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-[100] animate-in fade-in slide-in-from-top-1 duration-150 select-none">
                   {shareContent}
                   <div className="mt-3 pt-2.5 border-t border-white/5">
                     <p className="text-[10px] text-text-muted leading-relaxed">

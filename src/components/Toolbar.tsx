@@ -67,12 +67,12 @@ export default function Toolbar({ onAdd, onClearExtras, isMobile = false }: Tool
 
       {isOpen && (
         <>
-          {/* Backdrop catcher at z-40 */}
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          {/* Backdrop catcher at z-[90] */}
+          <div className="fixed inset-0 z-[90]" onClick={() => setIsOpen(false)} />
           
-          {/* Dropdown panel at z-50 (guaranteed above field) */}
+          {/* Dropdown panel at z-[100] (guaranteed above field) */}
           <div
-            className={`z-50 border border-border bg-surface-700 p-2 shadow-2xl rounded-xl select-none ${
+            className={`z-[100] border border-border bg-surface-700 p-2 shadow-2xl rounded-xl select-none ${
               isMobile
                 ? 'popover-mobile animate-in fade-in slide-in-from-bottom-2 duration-150'
                 : 'absolute left-1/2 -translate-x-1/2 mt-2 w-56 animate-in fade-in slide-in-from-top-1 duration-150'
