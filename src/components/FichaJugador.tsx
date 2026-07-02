@@ -85,8 +85,8 @@ export default function FichaJugador({
       <div
         className="relative"
         style={{
-          width: 'clamp(34px, 4vw, 56px)',
-          height: 'clamp(36px, 4.2vw, 58px)',
+          width: 'clamp(28px, 4vw, 56px)',
+          height: 'clamp(30px, 4.2vw, 58px)',
           filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.4))',
         }}
       >
@@ -98,8 +98,8 @@ export default function FichaJugador({
               e.stopPropagation();
               onDelete?.(numero);
             }}
-            className="absolute -top-1 -right-1 z-50 w-4 h-4 rounded-full
-                       bg-red-500 hover:bg-red-400 text-white text-[9px]
+            className="absolute -top-1.5 -right-1.5 z-50 w-5 h-5 rounded-full
+                       bg-red-500 hover:bg-red-400 text-white text-[10px]
                        flex items-center justify-center leading-none
                        shadow-md cursor-pointer transition-colors"
           >
@@ -187,7 +187,7 @@ export default function FichaJugador({
             setEditing(true);
           }}
           className="font-semibold text-white text-center leading-tight whitespace-nowrap drop-shadow-md cursor-pointer"
-          style={{ fontSize: 'clamp(7px, 0.8vw, 11px)' }}
+          style={{ fontSize: 'clamp(6px, 0.75vw, 11px)' }}
         >
           {nombre}
         </span>

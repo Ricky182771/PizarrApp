@@ -815,7 +815,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-dvh">
       {/* ── Unified Sticky Top Bar (Pro App Redesign) ───────────────────────────────────── */}
-      <header className="sticky top-0 z-50 flex items-center justify-between gap-4 px-6 py-2.5 bg-surface-800/60 backdrop-blur-md border-b border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.2)] select-none animate-in fade-in duration-300">
+      <header className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-2.5 bg-surface-800/60 backdrop-blur-md border-b border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.2)] select-none animate-in fade-in duration-300">
         {/* Left: Brand/Logo & Title Input */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-500/25 shrink-0">
@@ -857,9 +857,11 @@ function App() {
           </div>
         </div>
 
-        {/* Center: Floating Actions Toolbar */}
-        <div className="flex items-center bg-surface-900/50 p-1 rounded-xl border border-border shadow-inner">
-          <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} className="border-none p-0" />
+        {/* Center: Floating Actions Toolbar — moves to its own row on mobile */}
+        <div className="order-last sm:order-none w-full sm:w-auto flex justify-center sm:justify-start">
+          <div className="flex items-center bg-surface-900/50 p-1 rounded-xl border border-border shadow-inner">
+            <Toolbar onAdd={handleAddTool} onClearExtras={clearExtras} className="border-none p-0" />
+          </div>
         </div>
 
         {/* Right: Popovers & Global Actions */}
@@ -884,7 +886,7 @@ function App() {
             {isTeamConfigOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsTeamConfigOpen(false)} />
-                <div className="absolute right-0 mt-2 w-[320px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
+                <div className="absolute right-0 sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[320px] max-w-[320px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
                   <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-secondary mb-3 flex items-center gap-1.5">
                     <Users size={12} /> Alineaciones y Equipos
                   </h3>
@@ -1087,7 +1089,7 @@ function App() {
             {isExportOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsExportOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-surface-700 p-1.5 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
                     onClick={() => {
                       setIsExportOpen(false)
@@ -1150,7 +1152,7 @@ function App() {
             {isShareOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsShareOpen(false)} />
-                <div className="absolute right-0 mt-2 w-[340px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[340px] max-w-[340px] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-1 duration-150 select-none">
                   <h3 className="text-xs font-bold text-text-primary flex items-center gap-1.5 mb-1">
                     <Link2 size={13} className="text-emerald-400" />
                     Compartir Táctica
@@ -1204,10 +1206,10 @@ function App() {
       </header>
 
       {/* ── Main — 16:9 Play Area ──────────────────────────────────────── */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10">
-        <div className="relative w-full max-w-6xl">
+      <main className="flex-1 flex items-center justify-center p-1 sm:p-6 lg:p-10">
+        <div className="relative w-full max-w-6xl field-auto-rotate">
           {/* 16:9 aspect ratio container */}
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/40">
+          <div className="relative w-full aspect-video rounded-lg sm:rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/40">
             <Cancha ref={canchaRef}>
               {/* Interactive Lines / Arrows */}
               {arrows.map((arr) => (
@@ -1268,8 +1270,8 @@ function App() {
             </Cancha>
           </div>
 
-          {/* Bottom info strip */}
-          <div className="flex items-center justify-between mt-3 px-1 text-xs text-text-muted">
+          {/* Bottom info strip — hidden on very small portrait to save space */}
+          <div className="hidden sm:flex items-center justify-between mt-3 px-1 text-xs text-text-muted">
             <span>16 : 9 · Campo de fútbol</span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -1291,7 +1293,7 @@ function App() {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="flex items-center justify-center px-6 py-3 border-t border-border text-xs text-text-muted">
+      <footer className="hidden sm:flex items-center justify-center px-6 py-3 border-t border-border text-xs text-text-muted">
         Pizarra v0.1.0
       </footer>
     </div>

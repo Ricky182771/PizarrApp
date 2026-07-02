@@ -57,3 +57,38 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/*
+ * ── Mobile Responsive Overrides ─────────────────────────────────────────
+ */
+
+/* Prevent pull-to-refresh and overscroll on the entire app (mobile) */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* On very small screens, reduce header padding */
+@media (max-width: 640px) {
+  /* Make the field fill the viewport width on portrait phones */
+  .mobile-field-wrapper {
+    padding: 0.25rem;
+  }
+
+  /* Reduce button sizes for mobile toolbar */
+  .mobile-compact-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+/* On portrait phones, rotate the field 90° to show it in landscape orientation */
+@media (max-width: 640px) and (orientation: portrait) {
+  .field-auto-rotate {
+    width: 92dvh;
+    max-width: none;
+    height: auto;
+    transform: rotate(90deg);
+    transform-origin: center center;
+    margin: auto;
+  }
+}
