@@ -6,7 +6,7 @@ import DraggableElement from './components/DraggableElement'
 import InteractiveArrow from './components/InteractiveArrow'
 import { uid, isValidTacticaGuardada } from './types'
 import type { Jugador, FieldElement, ArrowItem, TacticaGuardada, ElementType } from './types'
-import { Users, ChevronDown, Plus, Minus, Save, RotateCcw, Download, Image, FileJson, FileText, Upload as UploadIcon, Pencil, Link2, Copy, Check } from 'lucide-react'
+import { Users, ChevronDown, Plus, Minus, Save, RotateCcw, Download, Image, FileJson, FileText, Upload as UploadIcon, Pencil, Link2, Copy, Check, Maximize, Minimize } from 'lucide-react'
 
 const LS_KEY = 'pizarra-tactica'
 
@@ -175,6 +175,10 @@ function App() {
   const [shareUrl, setShareUrl] = useState('')
   const [isCopied, setIsCopied] = useState(false)
 
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const fieldContainerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     document.title = `${tacticName.slice(0, 100)} - Pizarra Táctica`
   }, [tacticName])
@@ -194,6 +198,27 @@ function App() {
       }
     }
   }, [])
+
+  /* ── Fullscreen API ───────────────────────────────────────────────── */
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFsChange)
+    return () => document.removeEventListener('fullscreenchange', handleFsChange)
+  }, [])
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await fieldContainerRef.current?.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      showToast('⚠ Pantalla completa no disponible')
+    }
+  }
 
   /* Feedback toast state */
   const [toast, setToast] = useState<string | null>(null)
@@ -1207,65 +1232,88 @@ function App() {
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10">
         <div className="relative w-full max-w-6xl">
           {/* 16:9 aspect ratio container */}
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/40">
-            <Cancha ref={canchaRef}>
-              {/* Interactive Lines / Arrows */}
-              {arrows.map((arr) => (
-                <InteractiveArrow
-                  key={`arrow-${arr.id}-${resetKey}`}
-                  arrow={arr}
-                  constraintsRef={canchaRef}
-                  onUpdate={handleArrowUpdate}
-                  onDelete={handleArrowDelete}
-                  onScaleChange={handleArrowScaleChange}
-                />
-              ))}
+          <div
+            ref={fieldContainerRef}
+            className={`relative w-full rounded-2xl overflow-hidden border border-border shadow-2xl shadow-black/40 ${
+              isFullscreen ? 'flex items-center justify-center bg-surface-900' : 'aspect-video'
+            }`}
+          >
+            <div className={isFullscreen ? 'w-full h-full' : 'contents'}>
+              <Cancha ref={canchaRef}>
+                {/* Interactive Lines / Arrows */}
+                {arrows.map((arr) => (
+                  <InteractiveArrow
+                    key={`arrow-${arr.id}-${resetKey}`}
+                    arrow={arr}
+                    constraintsRef={canchaRef}
+                    onUpdate={handleArrowUpdate}
+                    onDelete={handleArrowDelete}
+                    onScaleChange={handleArrowScaleChange}
+                  />
+                ))}
 
-              {/* Draggable Ball, Cone, Text Elements */}
-              {elements.map((el) => (
-                <DraggableElement
-                  key={`element-${el.id}-${resetKey}`}
-                  element={el}
-                  constraintsRef={canchaRef}
-                  onDragEnd={handleElementDragEnd}
-                  onDelete={handleElementDelete}
-                  onTextChange={handleElementTextChange}
-                  onScaleChange={handleElementScaleChange}
-                />
-              ))}
+                {/* Draggable Ball, Cone, Text Elements */}
+                {elements.map((el) => (
+                  <DraggableElement
+                    key={`element-${el.id}-${resetKey}`}
+                    element={el}
+                    constraintsRef={canchaRef}
+                    onDragEnd={handleElementDragEnd}
+                    onDelete={handleElementDelete}
+                    onTextChange={handleElementTextChange}
+                    onScaleChange={handleElementScaleChange}
+                  />
+                ))}
 
-              {/* Equipo Local */}
-              {local.map((j) => (
-                <FichaJugador
-                  key={`local-${j.numero}-${resetKey}`}
-                  numero={j.numero}
-                  nombre={j.nombre}
-                  color={colorLocal}
-                  x={j.x}
-                  y={j.y}
-                  constraintsRef={canchaRef}
-                  onDragEnd={handleLocalDragEnd(j.numero)}
-                  onDelete={handleDeleteLocalPlayer}
-                  onNameChange={(newName) => handleLocalNameChange(j.numero, newName)}
-                />
-              ))}
+                {/* Equipo Local */}
+                {local.map((j) => (
+                  <FichaJugador
+                    key={`local-${j.numero}-${resetKey}`}
+                    numero={j.numero}
+                    nombre={j.nombre}
+                    color={colorLocal}
+                    x={j.x}
+                    y={j.y}
+                    constraintsRef={canchaRef}
+                    onDragEnd={handleLocalDragEnd(j.numero)}
+                    onDelete={handleDeleteLocalPlayer}
+                    onNameChange={(newName) => handleLocalNameChange(j.numero, newName)}
+                  />
+                ))}
 
-              {/* Equipo Visitante */}
-              {visitante.map((j) => (
-                <FichaJugador
-                  key={`visit-${j.numero}-${resetKey}`}
-                  numero={j.numero}
-                  nombre={j.nombre}
-                  color={colorVisitante}
-                  x={j.x}
-                  y={j.y}
-                  constraintsRef={canchaRef}
-                  onDragEnd={handleVisitanteDragEnd(j.numero)}
-                  onDelete={handleDeleteVisitantePlayer}
-                  onNameChange={(newName) => handleVisitanteNameChange(j.numero, newName)}
-                />
-              ))}
-            </Cancha>
+                {/* Equipo Visitante */}
+                {visitante.map((j) => (
+                  <FichaJugador
+                    key={`visit-${j.numero}-${resetKey}`}
+                    numero={j.numero}
+                    nombre={j.nombre}
+                    color={colorVisitante}
+                    x={j.x}
+                    y={j.y}
+                    constraintsRef={canchaRef}
+                    onDragEnd={handleVisitanteDragEnd(j.numero)}
+                    onDelete={handleDeleteVisitantePlayer}
+                    onNameChange={(newName) => handleVisitanteNameChange(j.numero, newName)}
+                  />
+                ))}
+              </Cancha>
+            </div>
+
+            {/* ── Fullscreen toggle button ─────────────────────────────── */}
+            <button
+              onClick={toggleFullscreen}
+              className={`absolute z-30 flex items-center justify-center rounded-lg
+                         bg-black/50 hover:bg-black/70 text-white/80 hover:text-white
+                         border border-white/10 hover:border-white/25
+                         backdrop-blur-sm transition-all duration-200 cursor-pointer active:scale-90 ${
+                           isFullscreen
+                             ? 'bottom-4 right-4 w-12 h-12'
+                             : 'bottom-2 right-2 w-8 h-8'
+                         }`}
+              title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={14} />}
+            </button>
           </div>
 
           {/* Bottom info strip */}
