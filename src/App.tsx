@@ -849,57 +849,108 @@ function App() {
   /* ── Shared field content (used in both mobile and desktop) ─────── */
   const fieldContent = (
     <Cancha ref={canchaRef} isVertical={isMobile}>
-      {arrows.map((arr) => (
-        <InteractiveArrow
-          key={`arrow-${arr.id}-${resetKey}`}
-          arrow={arr}
-          constraintsRef={canchaRef}
-          onUpdate={handleArrowUpdate}
-          onDelete={handleArrowDelete}
-          onScaleChange={handleArrowScaleChange}
-        />
-      ))}
-      {elements.map((el) => (
-        <DraggableElement
-          key={`element-${el.id}-${resetKey}`}
-          element={el}
-          constraintsRef={canchaRef}
-          onDragEnd={handleElementDragEnd}
-          onDelete={handleElementDelete}
-          onTextChange={handleElementTextChange}
-          onScaleChange={handleElementScaleChange}
-        />
-      ))}
-      {local.map((j) => (
-        <FichaJugador
-          key={`local-${j.numero}-${resetKey}`}
-          numero={j.numero}
-          nombre={j.nombre}
-          color={colorLocal}
-          x={j.x}
-          y={j.y}
-          constraintsRef={canchaRef}
-          onDragEnd={handleLocalDragEnd(j.numero)}
-          onDelete={handleDeleteLocalPlayer}
-          onNameChange={(newName) => handleLocalNameChange(j.numero, newName)}
-          isMobile={isMobile}
-        />
-      ))}
-      {visitante.map((j) => (
-        <FichaJugador
-          key={`visit-${j.numero}-${resetKey}`}
-          numero={j.numero}
-          nombre={j.nombre}
-          color={colorVisitante}
-          x={j.x}
-          y={j.y}
-          constraintsRef={canchaRef}
-          onDragEnd={handleVisitanteDragEnd(j.numero)}
-          onDelete={handleDeleteVisitantePlayer}
-          onNameChange={(newName) => handleVisitanteNameChange(j.numero, newName)}
-          isMobile={isMobile}
-        />
-      ))}
+      {arrows.map((arr) => {
+        const mappedArrow = isMobile
+          ? {
+              ...arr,
+              x1: arr.y1,
+              y1: 100 - arr.x1,
+              x2: arr.y2,
+              y2: 100 - arr.x2,
+            }
+          : arr
+        return (
+          <InteractiveArrow
+            key={`arrow-${arr.id}-${resetKey}`}
+            arrow={mappedArrow}
+            constraintsRef={canchaRef}
+            onUpdate={(id, updates) => {
+              if (isMobile) {
+                const mappedUpdates: Partial<ArrowItem> = {}
+                if (updates.x1 !== undefined) mappedUpdates.y1 = updates.x1
+                if (updates.y1 !== undefined) mappedUpdates.x1 = 100 - updates.y1
+                if (updates.x2 !== undefined) mappedUpdates.y2 = updates.x2
+                if (updates.y2 !== undefined) mappedUpdates.x2 = 100 - updates.y2
+                handleArrowUpdate(id, mappedUpdates)
+              } else {
+                handleArrowUpdate(id, updates)
+              }
+            }}
+            onDelete={handleArrowDelete}
+            onScaleChange={handleArrowScaleChange}
+          />
+        )
+      })}
+      {elements.map((el) => {
+        const mappedEl = isMobile ? { ...el, x: el.y, y: 100 - el.x } : el
+        return (
+          <DraggableElement
+            key={`element-${el.id}-${resetKey}`}
+            element={mappedEl}
+            constraintsRef={canchaRef}
+            onDragEnd={(id, nx, ny) => {
+              if (isMobile) {
+                handleElementDragEnd(id, 100 - ny, nx)
+              } else {
+                handleElementDragEnd(id, nx, ny)
+              }
+            }}
+            onDelete={handleElementDelete}
+            onTextChange={handleElementTextChange}
+            onScaleChange={handleElementScaleChange}
+          />
+        )
+      })}
+      {local.map((j) => {
+        const px = isMobile ? j.y : j.x
+        const py = isMobile ? 100 - j.x : j.y
+        return (
+          <FichaJugador
+            key={`local-${j.numero}-${resetKey}`}
+            numero={j.numero}
+            nombre={j.nombre}
+            color={colorLocal}
+            x={px}
+            y={py}
+            constraintsRef={canchaRef}
+            onDragEnd={(nx, ny) => {
+              if (isMobile) {
+                handleLocalDragEnd(j.numero)(100 - ny, nx)
+              } else {
+                handleLocalDragEnd(j.numero)(nx, ny)
+              }
+            }}
+            onDelete={handleDeleteLocalPlayer}
+            onNameChange={(newName) => handleLocalNameChange(j.numero, newName)}
+            isMobile={isMobile}
+          />
+        )
+      })}
+      {visitante.map((j) => {
+        const px = isMobile ? j.y : j.x
+        const py = isMobile ? 100 - j.x : j.y
+        return (
+          <FichaJugador
+            key={`visit-${j.numero}-${resetKey}`}
+            numero={j.numero}
+            nombre={j.nombre}
+            color={colorVisitante}
+            x={px}
+            y={py}
+            constraintsRef={canchaRef}
+            onDragEnd={(nx, ny) => {
+              if (isMobile) {
+                handleVisitanteDragEnd(j.numero)(100 - ny, nx)
+              } else {
+                handleVisitanteDragEnd(j.numero)(nx, ny)
+              }
+            }}
+            onDelete={handleDeleteVisitantePlayer}
+            onNameChange={(newName) => handleVisitanteNameChange(j.numero, newName)}
+            isMobile={isMobile}
+          />
+        )
+      })}
     </Cancha>
   )
 
