@@ -855,12 +855,91 @@ function App() {
     const canvas = renderTacticToCanvas()
     if (!canvas) return
 
-    /* Note: toDataURL returns a data: URI (not an Object URL), so no
-       revokeObjectURL is needed — unlike the JSON export's Blob URL. */
-    const dataUrl = canvas.toDataURL('image/png')
-    const link = document.createElement('a')
     const safeName = tacticName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') || 'pizarra-tactica'
-    link.download = `${safeName}-${Date.now()}.png`
+    const fileName = `${safeName}-${Date.now()}.png`
+
+    // Try sharing via Web Share API if on mobile and supported
+    if (isMobile && navigator.share && navigator.canShare) {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          fallbackImageDownload(canvas, fileName)
+          return
+        }
+        const file = new File([blob], fileName, { type: 'image/png' })
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: tacticName || 'Táctica',
+              text: 'Compartir mi táctica creada en PizarrApp'
+            })
+            showToast('✓ Táctica compartida')
+            return
+          } catch (err) {
+            console.error('Error sharing image', err)
+          }
+        }
+        fallbackImageDownload(canvas, fileName)
+      }, 'image/png')
+    } else {
+      fallbackImageDownload(canvas, fileName)
+    }
+  }
+
+  const fallbackImageDownload = (canvas: HTMLCanvasElement, fileName: string) => {
+    const dataUrl = canvas.toDataURL('image/png')
+    
+    // On iOS Safari / WebViews, opening in new tab is much more reliable
+    if (isMobile) {
+      const newTab = window.open()
+      if (newTab) {
+        newTab.document.write(`
+          <html>
+            <head>
+              <title>PizarrApp - Exportar</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  margin: 0;
+                  background: #111827;
+                  color: #f3f4f6;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  font-family: system-ui, sans-serif;
+                  padding: 16px;
+                  min-height: 100vh;
+                  box-sizing: border-box;
+                }
+                img {
+                  max-width: 100%;
+                  max-height: 75vh;
+                  border-radius: 12px;
+                  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+                  margin-bottom: 20px;
+                }
+                p {
+                  font-size: 14px;
+                  text-align: center;
+                  color: #9ca3af;
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" alt="Táctica" />
+              <p>Mantén presionada la imagen para guardarla o compartirla en tu móvil.</p>
+            </body>
+          </html>
+        `)
+        newTab.document.close()
+        showToast('✓ Táctica abierta para guardar')
+        return
+      }
+    }
+
+    const link = document.createElement('a')
+    link.download = fileName
     link.href = dataUrl
     link.click()
     showToast('✓ Imagen PNG descargada')
