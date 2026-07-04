@@ -180,7 +180,7 @@ function App() {
   const fieldContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    document.title = `${tacticName.slice(0, 100)} - Pizarra Táctica`
+    document.title = `${tacticName.slice(0, 100)} - PizarrApp Táctica`
   }, [tacticName])
 
   // Telegram Mini App initialisation
@@ -1558,7 +1558,7 @@ function App() {
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
       <footer className="flex items-center justify-center px-6 py-3 border-t border-border text-xs text-text-muted">
-        Pizarra v0.1.0
+        PizarrApp v0.1.0
       </footer>
     </div>
   )

@@ -6,8 +6,8 @@ describe('App Component', () => {
   it('renders title and tool buttons', () => {
     render(<App />);
     
-    // Check that header/footer title contains "Pizarra"
-    expect(screen.getByText(/Pizarra/)).toBeInTheDocument();
+    // Check that header/footer title contains "PizarrApp"
+    expect(screen.getByText(/PizarrApp/)).toBeInTheDocument();
     
     // Open the Extras dropdown first
     const extrasBtn = screen.getByTitle('Extras');
