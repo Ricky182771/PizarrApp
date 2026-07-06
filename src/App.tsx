@@ -7,6 +7,7 @@ import InteractiveArrow from './components/InteractiveArrow'
 import { uid, isValidTacticaGuardada } from './types'
 import type { Jugador, FieldElement, ArrowItem, TacticaGuardada, ElementType } from './types'
 import { Plus, Minus, Pencil, Maximize, Minimize } from 'lucide-react'
+import { usePercentDrag } from './hooks/usePercentDrag'
 
 const LS_KEY = 'pizarra-tactica'
 
@@ -150,6 +151,8 @@ function App() {
       golesLocal: saved?.golesLocal ?? 0,
       golesVisitante: saved?.golesVisitante ?? 0,
       mostrarMarcador: saved?.mostrarMarcador ?? false,
+      marcadorX: saved?.marcadorX ?? 50,
+      marcadorY: saved?.marcadorY ?? 7,
     }
   })
 
@@ -164,6 +167,21 @@ function App() {
   const [golesLocal, setGolesLocal] = useState(initialData.golesLocal)
   const [golesVisitante, setGolesVisitante] = useState(initialData.golesVisitante)
   const [mostrarMarcador, setMostrarMarcador] = useState(initialData.mostrarMarcador)
+  const [marcadorX, setMarcadorX] = useState(initialData.marcadorX)
+  const [marcadorY, setMarcadorY] = useState(initialData.marcadorY)
+
+  const { onPointerDown: handleMarcadorPointerDown } = usePercentDrag({
+    containerRef: canchaRef,
+    onMove: (nx, ny) => {
+      setMarcadorX(nx)
+      setMarcadorY(ny)
+    },
+    onEnd: (nx, ny) => {
+      setMarcadorX(nx)
+      setMarcadorY(ny)
+    },
+  })
+
   const [tacticName, setTacticName] = useState(() => {
     const saved = loadFromLS()
     return saved?.tacticName ?? 'Pizarra de Tácticas'
@@ -269,6 +287,8 @@ function App() {
         if (parsed.golesLocal !== undefined) setGolesLocal(parsed.golesLocal)
         if (parsed.golesVisitante !== undefined) setGolesVisitante(parsed.golesVisitante)
         if (parsed.mostrarMarcador !== undefined) setMostrarMarcador(parsed.mostrarMarcador)
+        if (parsed.marcadorX !== undefined) setMarcadorX(parsed.marcadorX)
+        if (parsed.marcadorY !== undefined) setMarcadorY(parsed.marcadorY)
         setResetKey((k) => k + 1)
         window.history.replaceState(null, '', window.location.pathname)
         showToast('✓ Táctica cargada desde enlace')
@@ -283,6 +303,7 @@ function App() {
     const data: TacticaGuardada = {
       local, visitante, colorLocal, colorVisitante, elements, arrows, tacticName,
       nombreLocal, nombreVisitante, golesLocal, golesVisitante, mostrarMarcador,
+      marcadorX, marcadorY,
     }
     const json = JSON.stringify(data)
     const compressed = await compressToUrlSafe(json)
@@ -477,6 +498,8 @@ function App() {
       golesLocal,
       golesVisitante,
       mostrarMarcador,
+      marcadorX,
+      marcadorY,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
     showToast('✓ Táctica guardada')
@@ -493,6 +516,8 @@ function App() {
     setGolesLocal(0)
     setGolesVisitante(0)
     setMostrarMarcador(false)
+    setMarcadorX(50)
+    setMarcadorY(7)
     setElements([])
     setArrows([])
     localStorage.removeItem(LS_KEY)
@@ -1039,72 +1064,96 @@ function App() {
     <Cancha ref={canchaRef} isVertical={isMobile}>
       {/* Marcador Táctico */}
       {mostrarMarcador && (
-        <div 
-          className="absolute top-[5%] left-1/2 -translate-x-1/2 z-40
-                     backdrop-blur-md bg-surface-800/80 border border-border/80 
-                     shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-xl px-3 py-1.5 
-                     flex items-center gap-3 select-none text-[11px]
-                     animate-in fade-in slide-in-from-top-2 duration-200"
+        <div
+          onPointerDown={handleMarcadorPointerDown}
+          className="absolute z-40 select-none text-[11px] cursor-grab active:cursor-grabbing"
+          style={{
+            left: `${marcadorX}%`,
+            top: `${marcadorY}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
         >
-          {/* Local Team */}
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: colorLocal }} />
-            <input
-              type="text"
-              value={nombreLocal}
-              onChange={(e) => setNombreLocal(e.target.value)}
-              className="text-xs font-bold text-text-primary bg-transparent border-none outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-1 py-0.5 rounded-md w-14 sm:w-20 text-right font-sans truncate"
-              title="Nombre del equipo local"
-            />
-            <div className="flex items-center gap-1 shrink-0">
-              <button 
-                onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
-                className="w-4 h-4 flex items-center justify-center rounded bg-surface-700/60 hover:bg-surface-600 border border-border text-text-secondary cursor-pointer active:scale-90 transition-transform"
-                title="Restar gol"
-              >
-                <Minus size={8} strokeWidth={3} />
-              </button>
-              <span className="text-xs font-black text-accent-400 font-mono w-4 text-center">{golesLocal}</span>
-              <button 
-                onClick={() => setGolesLocal(golesLocal + 1)}
-                className="w-4 h-4 flex items-center justify-center rounded bg-surface-700/60 hover:bg-surface-600 border border-border text-text-secondary cursor-pointer active:scale-90 transition-transform"
-                title="Sumar gol"
-              >
-                <Plus size={8} strokeWidth={3} />
-              </button>
+          <div 
+            className="backdrop-blur-md bg-[#0c0c12]/90 border-2 border-surface-600/80 
+                       shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_12px_40px_rgba(0,0,0,0.6)] 
+                       rounded-2xl px-4 py-2.5 flex items-center gap-4 text-white"
+          >
+            {/* Local Team */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full border border-white/10 shrink-0 shadow-sm" style={{ backgroundColor: colorLocal }} />
+              <input
+                type="text"
+                value={nombreLocal}
+                onChange={(e) => setNombreLocal(e.target.value)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs font-bold text-text-primary bg-surface-900/60 border border-white/5 outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-2 py-1 rounded-md w-16 sm:w-24 text-right font-sans truncate text-shadow-sm"
+                title="Nombre del equipo local"
+              />
+              <div className="flex items-center gap-1 shrink-0 bg-surface-950 p-1 rounded-lg border border-white/5">
+                <button 
+                  onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
+                  title="Restar gol"
+                >
+                  <Minus size={9} strokeWidth={3} />
+                </button>
+                <div className="w-8 h-7 bg-black rounded flex items-center justify-center border border-neutral-900 shadow-inner">
+                  <span className="text-base font-black text-red-500 tracking-wide select-none text-center" style={{ fontFamily: "'Orbitron', monospace", textShadow: '0 0 6px rgba(239, 68, 68, 0.75)' }}>
+                    {golesLocal}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setGolesLocal(golesLocal + 1)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
+                  title="Sumar gol"
+                >
+                  <Plus size={9} strokeWidth={3} />
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* VS Divider */}
-          <span className="text-[9px] font-black tracking-wider text-text-muted select-none">VS</span>
+            {/* VS Divider */}
+            <span className="text-[10px] font-black tracking-widest text-text-muted select-none px-1">VS</span>
 
-          {/* Visitante Team */}
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1 shrink-0">
-              <button 
-                onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
-                className="w-4 h-4 flex items-center justify-center rounded bg-surface-700/60 hover:bg-surface-600 border border-border text-text-secondary cursor-pointer active:scale-90 transition-transform"
-                title="Restar gol"
-              >
-                <Minus size={8} strokeWidth={3} />
-              </button>
-              <span className="text-xs font-black text-accent-400 font-mono w-4 text-center">{golesVisitante}</span>
-              <button 
-                onClick={() => setGolesVisitante(golesVisitante + 1)}
-                className="w-4 h-4 flex items-center justify-center rounded bg-surface-700/60 hover:bg-surface-600 border border-border text-text-secondary cursor-pointer active:scale-90 transition-transform"
-                title="Sumar gol"
-              >
-                <Plus size={8} strokeWidth={3} />
-              </button>
+            {/* Visitante Team */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 shrink-0 bg-surface-950 p-1 rounded-lg border border-white/5">
+                <button 
+                  onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
+                  title="Restar gol"
+                >
+                  <Minus size={9} strokeWidth={3} />
+                </button>
+                <div className="w-8 h-7 bg-black rounded flex items-center justify-center border border-neutral-900 shadow-inner">
+                  <span className="text-base font-black text-red-500 tracking-wide select-none text-center" style={{ fontFamily: "'Orbitron', monospace", textShadow: '0 0 6px rgba(239, 68, 68, 0.75)' }}>
+                    {golesVisitante}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setGolesVisitante(golesVisitante + 1)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
+                  title="Sumar gol"
+                >
+                  <Plus size={9} strokeWidth={3} />
+                </button>
+              </div>
+              <input
+                type="text"
+                value={nombreVisitante}
+                onChange={(e) => setNombreVisitante(e.target.value)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs font-bold text-text-primary bg-surface-900/60 border border-white/5 outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-2 py-1 rounded-md w-16 sm:w-24 text-left font-sans truncate text-shadow-sm"
+                title="Nombre del equipo visitante"
+              />
+              <span className="w-3 h-3 rounded-full border border-white/10 shrink-0 shadow-sm" style={{ backgroundColor: colorVisitante }} />
             </div>
-            <input
-              type="text"
-              value={nombreVisitante}
-              onChange={(e) => setNombreVisitante(e.target.value)}
-              className="text-xs font-bold text-text-primary bg-transparent border-none outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-1 py-0.5 rounded-md w-14 sm:w-20 text-left font-sans truncate"
-              title="Nombre del equipo visitante"
-            />
-            <span className="w-2.5 h-2.5 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: colorVisitante }} />
           </div>
         </div>
       )}
