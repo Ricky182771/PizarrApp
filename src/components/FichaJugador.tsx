@@ -95,9 +95,9 @@ export default function FichaJugador({
       }}
       className="absolute flex flex-col items-center gap-0.5 select-none touch-none"
       style={{
-        left: `${x}%`,
-        top: `${y}%`,
-        transform: 'translate(-50%, -50%)',
+        left: 0,
+        top: 0,
+        transform: `translate3d(calc(${x} * 1cqw - 50%), calc(${y} * 1cqh - 50%), 0)`,
         cursor: editing ? 'auto' : isDragging ? 'grabbing' : 'grab',
         zIndex: isDragging ? 50 : hovered ? 40 : 10,
         transition: isDragging ? 'none' : 'filter 0.15s ease',

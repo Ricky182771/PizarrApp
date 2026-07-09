@@ -57,6 +57,7 @@ export function usePercentDrag({
       if (e.button !== 0) return;
       e.stopPropagation();
       dragging.current = true;
+      document.body.style.touchAction = 'none';
       const el = e.currentTarget as HTMLElement;
       elRef.current = el;
       el.setPointerCapture(e.pointerId);
@@ -83,6 +84,7 @@ export function usePercentDrag({
       const handlePointerUp = (ev: PointerEvent) => {
         if (!dragging.current) return;
         dragging.current = false;
+        document.body.style.touchAction = '';
         const [px, py] = toPercent(ev.clientX, ev.clientY);
         onEnd?.(px, py);
         elRef.current?.releasePointerCapture(ev.pointerId);

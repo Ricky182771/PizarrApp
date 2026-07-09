@@ -97,7 +97,8 @@ const Cancha = forwardRef<HTMLDivElement, CanchaProps>(
     return (
       <div
         ref={ref}
-        className="relative w-full h-full overflow-hidden rounded-2xl select-none"
+        className="relative w-full h-full overflow-hidden rounded-2xl select-none touch-none"
+        style={{ containerType: 'size' }}
       >
         {/* ── Grass gradient ──────────────────────────────────────────── */}
         <div

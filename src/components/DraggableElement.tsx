@@ -210,9 +210,9 @@ export default function DraggableElement({
       }}
       className="absolute flex flex-col items-center select-none touch-none"
       style={{
-        left: `${element.x}%`,
-        top: `${element.y}%`,
-        transform: `translate(-50%, -50%) scale(${scale})`,
+        left: 0,
+        top: 0,
+        transform: `translate3d(calc(${element.x} * 1cqw - 50%), calc(${element.y} * 1cqh - 50%), 0) scale(${scale})`,
         zIndex: isDragging ? 50 : hovered ? 40 : 10,
         cursor: editing ? 'auto' : isDragging ? 'grabbing' : 'grab',
         transition: isDragging ? 'none' : 'transform 0.15s ease',
