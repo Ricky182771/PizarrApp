@@ -15,7 +15,9 @@ import {
   Image,
   FileText,
   Copy,
-  Check
+  Check,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -35,6 +37,9 @@ interface FloatingMenuProps {
   isTeamConfigOpen: boolean;
   setIsTeamConfigOpen: (open: boolean) => void;
   teamConfigContent: React.ReactNode;
+
+  mostrarMarcador: boolean;
+  setMostrarMarcador: (show: boolean) => void;
 }
 
 export default function FloatingMenu({
@@ -50,7 +55,9 @@ export default function FloatingMenu({
   isCopied,
   isTeamConfigOpen,
   setIsTeamConfigOpen,
-  teamConfigContent
+  teamConfigContent,
+  mostrarMarcador,
+  setMostrarMarcador
 }: FloatingMenuProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -113,7 +120,7 @@ export default function FloatingMenu({
     clickStartRef.current = { x: e.clientX, y: e.clientY };
     dragStartRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
 
-    if (containerRef.current) {
+    if (containerRef.current && typeof containerRef.current.setPointerCapture === 'function') {
       containerRef.current.setPointerCapture(e.pointerId);
     }
     e.stopPropagation();
@@ -142,7 +149,7 @@ export default function FloatingMenu({
     if (!isDraggingRef.current) return;
 
     isDraggingRef.current = false;
-    if (containerRef.current) {
+    if (containerRef.current && typeof containerRef.current.releasePointerCapture === 'function') {
       try {
         containerRef.current.releasePointerCapture(e.pointerId);
       } catch (err) {
@@ -242,6 +249,8 @@ export default function FloatingMenu({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        role="button"
+        title={isExpanded ? "Colapsar menú" : "Expandir menú"}
         style={{
           left: position.x,
           top: position.y,
@@ -278,6 +287,22 @@ export default function FloatingMenu({
 
             {/* Actions list */}
             <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2 duration-150">
+              {/* Marcador Toggle */}
+              <button
+                onClick={() => {
+                  setMostrarMarcador(!mostrarMarcador);
+                  closeAll();
+                }}
+                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all cursor-pointer active:scale-90 ${
+                  mostrarMarcador
+                    ? 'bg-accent-500/20 text-accent-400 border-accent-500/30'
+                    : 'bg-surface-700/60 text-text-secondary border-border hover:bg-surface-700 hover:text-text-primary'
+                }`}
+                title={mostrarMarcador ? "Ocultar Marcador" : "Mostrar Marcador"}
+              >
+                {mostrarMarcador ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+
               {/* Extras menu */}
               <div className="relative">
                 <button

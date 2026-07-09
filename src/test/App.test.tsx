@@ -3,14 +3,20 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import App from '../App';
 
 describe('App Component', () => {
-  it('renders title and tool buttons', () => {
+  it('renders title and tool buttons', async () => {
     render(<App />);
     
     // Check that header/footer title contains "PizarrApp"
     expect(screen.getByText(/PizarrApp/)).toBeInTheDocument();
     
+    // Expand the floating menu first
+    const expandBtn = await screen.findByTitle('Expandir menú');
+    expect(expandBtn).toBeInTheDocument();
+    fireEvent.pointerDown(expandBtn);
+    fireEvent.pointerUp(expandBtn);
+
     // Open the Extras dropdown first
-    const extrasBtn = screen.getByTitle('Extras');
+    const extrasBtn = await screen.findByTitle('Extras');
     expect(extrasBtn).toBeInTheDocument();
     fireEvent.click(extrasBtn);
 
@@ -21,11 +27,17 @@ describe('App Component', () => {
     expect(screen.getByText('Texto')).toBeInTheDocument();
   });
 
-  it('can switch team presets between Fútbol 7 and Fútbol 11', () => {
+  it('can switch team presets between Fútbol 7 and Fútbol 11', async () => {
     render(<App />);
 
+    // Expand the floating menu first
+    const expandBtn = await screen.findByTitle('Expandir menú');
+    expect(expandBtn).toBeInTheDocument();
+    fireEvent.pointerDown(expandBtn);
+    fireEvent.pointerUp(expandBtn);
+
     // Open the Team Configuration panel first
-    const configBtn = screen.getByTitle('Configurar alineación y uniformes');
+    const configBtn = await screen.findByTitle('Alineaciones');
     expect(configBtn).toBeInTheDocument();
     fireEvent.click(configBtn);
 
@@ -40,11 +52,17 @@ describe('App Component', () => {
     expect(screen.getAllByText('GK').length).toBeGreaterThan(0);
   });
 
-  it('can add a local player via the + button', () => {
+  it('can add a local player via the + button', async () => {
     render(<App />);
 
+    // Expand the floating menu first
+    const expandBtn = await screen.findByTitle('Expandir menú');
+    expect(expandBtn).toBeInTheDocument();
+    fireEvent.pointerDown(expandBtn);
+    fireEvent.pointerUp(expandBtn);
+
     // Open the Team Configuration panel first
-    const configBtn = screen.getByTitle('Configurar alineación y uniformes');
+    const configBtn = await screen.findByTitle('Alineaciones');
     expect(configBtn).toBeInTheDocument();
     fireEvent.click(configBtn);
 

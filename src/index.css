@@ -1,3 +1,4 @@
+@import url('https://fonts.cdnfonts.com/css/digital-7');
 @import "tailwindcss";
 
 /*
@@ -96,3 +97,139 @@ body {
     overflow-y: auto;
   }
 }
+
+/*
+ * ── Stadium Scoreboard Styles ───────────────────────────────────────────
+ */
+.digital-scoreboard-fixed {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 105; /* Floating above header and menus */
+  pointer-events: auto;
+}
+@media (max-width: 768px) {
+  .digital-scoreboard-fixed {
+    top: 8px;
+  }
+}
+
+.stadium-scoreboard {
+  display: flex;
+  align-items: center;
+  background-color: rgba(10, 10, 14, 0.92);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 2px solid;
+  /* Silver metallic gradient effect */
+  border-color: #cbd5e1 #94a3b8 #475569 #e2e8f0;
+  box-shadow: 
+    0 10px 30px -5px rgba(0, 0, 0, 0.8),
+    0 4px 12px -5px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Slanted Red Panel for Local Team */
+.scoreboard-team-local {
+  background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
+  position: relative;
+  padding: 6px 24px 6px 16px;
+  /* Angle clip path on the right side */
+  clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  border-right: 1.5px solid rgba(0, 0, 0, 0.3);
+  min-height: 48px;
+}
+
+/* Slanted Blue Panel for Visitante Team */
+.scoreboard-team-visitante {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  position: relative;
+  padding: 6px 16px 6px 24px;
+  /* Angle clip path on the left side */
+  clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  border-left: 1.5px solid rgba(0, 0, 0, 0.3);
+  min-height: 48px;
+}
+
+/* Central display section */
+.scoreboard-center-panel {
+  background-color: rgba(6, 6, 8, 0.8);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  min-height: 48px;
+}
+
+/* Electronic digit box */
+.digital-score-box {
+  background-color: #030304;
+  border: 1.5px solid #1e293b;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95);
+  border-radius: 6px;
+  width: 36px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  position: relative;
+}
+
+.digital-score-box:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 
+    inset 0 2px 5px rgba(0, 0, 0, 0.95),
+    0 0 10px rgba(34, 211, 238, 0.4);
+}
+
+.digital-score-box:active {
+  transform: scale(0.92);
+}
+
+.digital-score-value {
+  font-family: 'Digital-7', 'Digital-7 Mono', 'Orbitron', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  color: #22d3ee;
+  line-height: 1;
+  text-shadow: 
+    0 0 6px rgba(34, 211, 238, 0.9),
+    0 0 12px rgba(34, 211, 238, 0.4);
+  user-select: none;
+}
+
+/* Floating VS badge */
+.scoreboard-vs-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  border: 1.5px solid #475569;
+  color: #0f172a;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  letter-spacing: 0.15em;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  z-index: 10;
+}
+

@@ -6,8 +6,7 @@ import DraggableElement from './components/DraggableElement'
 import InteractiveArrow from './components/InteractiveArrow'
 import { uid, isValidTacticaGuardada } from './types'
 import type { Jugador, FieldElement, ArrowItem, TacticaGuardada, ElementType } from './types'
-import { Plus, Minus, Pencil, Maximize, Minimize } from 'lucide-react'
-import { usePercentDrag } from './hooks/usePercentDrag'
+import { Plus, Minus, Pencil, Maximize, Minimize, Eye, EyeOff } from 'lucide-react'
 
 const LS_KEY = 'pizarra-tactica'
 
@@ -169,18 +168,6 @@ function App() {
   const [mostrarMarcador, setMostrarMarcador] = useState(initialData.mostrarMarcador)
   const [marcadorX, setMarcadorX] = useState(initialData.marcadorX)
   const [marcadorY, setMarcadorY] = useState(initialData.marcadorY)
-
-  const { onPointerDown: handleMarcadorPointerDown } = usePercentDrag({
-    containerRef: canchaRef,
-    onMove: (nx, ny) => {
-      setMarcadorX(nx)
-      setMarcadorY(ny)
-    },
-    onEnd: (nx, ny) => {
-      setMarcadorX(nx)
-      setMarcadorY(ny)
-    },
-  })
 
   const [tacticName, setTacticName] = useState(() => {
     const saved = loadFromLS()
@@ -1060,103 +1047,87 @@ function App() {
     showToast('✓ PDF descargado')
   }
 
-  const fieldContent = (
-    <Cancha ref={canchaRef} isVertical={isMobile}>
-      {/* Marcador Táctico */}
-      {mostrarMarcador && (
-        <div
-          onPointerDown={handleMarcadorPointerDown}
-          className="absolute z-40 select-none text-[11px] cursor-grab active:cursor-grabbing"
-          style={{
-            left: `${marcadorX}%`,
-            top: `${marcadorY}%`,
-            transform: 'translate(-50%, -50%)',
-          }}
-        >
+  const newScoreboard = mostrarMarcador && (
+    <div className="digital-scoreboard-fixed select-none">
+      <div className="stadium-scoreboard relative">
+        {/* Left Team (Local) Banner - Red */}
+        <div className="scoreboard-team-local">
+          <span className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0 shadow-sm" style={{ backgroundColor: colorLocal }} />
+          <input
+            type="text"
+            value={nombreLocal}
+            onChange={(e) => setNombreLocal(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-black uppercase tracking-wider text-white bg-black/30 border border-white/10 outline-none focus:bg-black/50 focus:ring-1 focus:ring-red-400/50 px-2 py-0.5 rounded w-16 sm:w-24 text-right font-sans truncate"
+            title="Local"
+          />
+        </div>
+
+        {/* Center Panel (Scores and VS Badge) */}
+        <div className="scoreboard-center-panel">
+          <div className="scoreboard-vs-badge">VS</div>
+          
+          {/* Local Score Digit */}
           <div 
-            className="backdrop-blur-md bg-[#0c0c12]/90 border-2 border-surface-600/80 
-                       shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_12px_40px_rgba(0,0,0,0.6)] 
-                       rounded-2xl px-4 py-2.5 flex items-center gap-4 text-white"
+            onClick={(e) => {
+              e.stopPropagation()
+              setGolesLocal((prev) => (prev + 1) % 10)
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setGolesLocal((prev) => (prev - 1 + 10) % 10)
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="digital-score-box"
+            title="Sumar (Click) / Restar (Click derecho)"
           >
-            {/* Local Team */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full border border-white/10 shrink-0 shadow-sm" style={{ backgroundColor: colorLocal }} />
-              <input
-                type="text"
-                value={nombreLocal}
-                onChange={(e) => setNombreLocal(e.target.value)}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs font-bold text-text-primary bg-surface-900/60 border border-white/5 outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-2 py-1 rounded-md w-16 sm:w-24 text-right font-sans truncate text-shadow-sm"
-                title="Nombre del equipo local"
-              />
-              <div className="flex items-center gap-1 shrink-0 bg-surface-950 p-1 rounded-lg border border-white/5">
-                <button 
-                  onClick={() => setGolesLocal(Math.max(0, golesLocal - 1))}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
-                  title="Restar gol"
-                >
-                  <Minus size={9} strokeWidth={3} />
-                </button>
-                <div className="w-8 h-7 bg-black rounded flex items-center justify-center border border-neutral-900 shadow-inner">
-                  <span className="text-base font-black text-red-500 tracking-wide select-none text-center" style={{ fontFamily: "'Orbitron', monospace", textShadow: '0 0 6px rgba(239, 68, 68, 0.75)' }}>
-                    {golesLocal}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setGolesLocal(golesLocal + 1)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
-                  title="Sumar gol"
-                >
-                  <Plus size={9} strokeWidth={3} />
-                </button>
-              </div>
-            </div>
+            <span className="digital-score-value">
+              {golesLocal % 10}
+            </span>
+          </div>
 
-            {/* VS Divider */}
-            <span className="text-[10px] font-black tracking-widest text-text-muted select-none px-1">VS</span>
+          <span className="text-cyan-400/80 font-bold text-lg select-none">:</span>
 
-            {/* Visitante Team */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 shrink-0 bg-surface-950 p-1 rounded-lg border border-white/5">
-                <button 
-                  onClick={() => setGolesVisitante(Math.max(0, golesVisitante - 1))}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
-                  title="Restar gol"
-                >
-                  <Minus size={9} strokeWidth={3} />
-                </button>
-                <div className="w-8 h-7 bg-black rounded flex items-center justify-center border border-neutral-900 shadow-inner">
-                  <span className="text-base font-black text-red-500 tracking-wide select-none text-center" style={{ fontFamily: "'Orbitron', monospace", textShadow: '0 0 6px rgba(239, 68, 68, 0.75)' }}>
-                    {golesVisitante}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setGolesVisitante(golesVisitante + 1)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="w-5 h-5 flex items-center justify-center rounded bg-surface-800 hover:bg-surface-700 border border-border text-text-secondary cursor-pointer active:scale-95 transition-transform"
-                  title="Sumar gol"
-                >
-                  <Plus size={9} strokeWidth={3} />
-                </button>
-              </div>
-              <input
-                type="text"
-                value={nombreVisitante}
-                onChange={(e) => setNombreVisitante(e.target.value)}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs font-bold text-text-primary bg-surface-900/60 border border-white/5 outline-none focus:bg-surface-700/60 focus:ring-1 focus:ring-accent-500/30 px-2 py-1 rounded-md w-16 sm:w-24 text-left font-sans truncate text-shadow-sm"
-                title="Nombre del equipo visitante"
-              />
-              <span className="w-3 h-3 rounded-full border border-white/10 shrink-0 shadow-sm" style={{ backgroundColor: colorVisitante }} />
-            </div>
+          {/* Visitante Score Digit */}
+          <div 
+            onClick={(e) => {
+              e.stopPropagation()
+              setGolesVisitante((prev) => (prev + 1) % 10)
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setGolesVisitante((prev) => (prev - 1 + 10) % 10)
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="digital-score-box"
+            title="Sumar (Click) / Restar (Click derecho)"
+          >
+            <span className="digital-score-value">
+              {golesVisitante % 10}
+            </span>
           </div>
         </div>
-      )}
+
+        {/* Right Team (Visitante) Banner - Blue */}
+        <div className="scoreboard-team-visitante">
+          <input
+            type="text"
+            value={nombreVisitante}
+            onChange={(e) => setNombreVisitante(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-black uppercase tracking-wider text-white bg-black/30 border border-white/10 outline-none focus:bg-black/50 focus:ring-1 focus:ring-blue-400/50 px-2 py-0.5 rounded w-16 sm:w-24 text-left font-sans truncate"
+            title="Visitante"
+          />
+          <span className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0 shadow-sm" style={{ backgroundColor: colorVisitante }} />
+        </div>
+      </div>
+    </div>
+  )
+
+  const fieldContent = (
+    <Cancha ref={canchaRef} isVertical={isMobile}>
       {arrows.map((arr) => {
         const mappedArrow = isMobile
           ? {
@@ -1415,6 +1386,7 @@ function App() {
   if (isMobile) {
     return (
       <div className="flex flex-col h-dvh overflow-hidden bg-surface-900">
+        {newScoreboard}
         <main className="flex-1 flex items-center justify-center p-2 overflow-hidden">
           <div
             ref={fieldContainerRef}
@@ -1454,6 +1426,8 @@ function App() {
           isTeamConfigOpen={isTeamConfigOpen}
           setIsTeamConfigOpen={setIsTeamConfigOpen}
           teamConfigContent={teamConfigContent}
+          mostrarMarcador={mostrarMarcador}
+          setMostrarMarcador={setMostrarMarcador}
         />
         <div
           className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50
@@ -1470,6 +1444,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-dvh">
+      {newScoreboard}
       <header className="sticky top-0 z-[100] flex items-center justify-between gap-4 px-6 py-2.5 bg-surface-800/60 backdrop-blur-md border-b border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.2)] select-none animate-in fade-in duration-300">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-500/25 shrink-0">
@@ -1509,6 +1484,20 @@ function App() {
               Autoguardado
             </span>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMostrarMarcador((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 ${
+              mostrarMarcador
+                ? 'bg-accent-500/20 text-accent-400 border-accent-500/30 shadow-[0_0_10px_rgba(99,102,241,0.15)]'
+                : 'bg-surface-700/60 text-text-secondary hover:text-text-primary border-border hover:bg-surface-700'
+            }`}
+            title="Mostrar/Ocultar marcador"
+          >
+            {mostrarMarcador ? <EyeOff size={14} className="text-accent-400" /> : <Eye size={14} className="text-text-secondary" />}
+            <span>Marcador</span>
+          </button>
         </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10">
@@ -1578,6 +1567,8 @@ function App() {
         isTeamConfigOpen={isTeamConfigOpen}
         setIsTeamConfigOpen={setIsTeamConfigOpen}
         teamConfigContent={teamConfigContent}
+        mostrarMarcador={mostrarMarcador}
+        setMostrarMarcador={setMostrarMarcador}
       />
     </div>
   )
