@@ -108,6 +108,25 @@ function getNextUnusedNumber(players: Jugador[]): number {
   return num
 }
 
+function changeFormation(currentPlayers: Jugador[], targetPreset: Jugador[]): Jugador[] {
+  const sz = targetPreset.length
+  const result: Jugador[] = []
+  for (let i = 0; i < sz; i++) {
+    if (i < currentPlayers.length) {
+      result.push({
+        ...currentPlayers[i],
+        x: targetPreset[i].x,
+        y: targetPreset[i].y,
+      })
+    } else {
+      result.push({
+        ...targetPreset[i]
+      })
+    }
+  }
+  return result
+}
+
 /* ── URL-safe compression (for shareable links) ──────────────────────── */
 async function compressToUrlSafe(json: string): Promise<string> {
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))
@@ -1331,7 +1350,8 @@ function App() {
               <button
                 key={`local-sz-${sz}`}
                 onClick={() => {
-                  setLocal(deepClone(sz === 7 ? formacion7Local : sz === 9 ? formacion9Local : formacionLocal))
+                  const targetPreset = sz === 7 ? formacion7Local : sz === 9 ? formacion9Local : formacionLocal
+                  setLocal(changeFormation(local, targetPreset))
                   setResetKey((k) => k + 1)
                   showToast(`Local: Fútbol ${sz}`)
                 }}
@@ -1394,7 +1414,8 @@ function App() {
               <button
                 key={`visitante-sz-${sz}`}
                 onClick={() => {
-                  setVisitante(deepClone(sz === 7 ? formacion7Visitante : sz === 9 ? formacion9Visitante : formacionVisitante))
+                  const targetPreset = sz === 7 ? formacion7Visitante : sz === 9 ? formacion9Visitante : formacionVisitante
+                  setVisitante(changeFormation(visitante, targetPreset))
                   setResetKey((k) => k + 1)
                   showToast(`Visitante: Fútbol ${sz}`)
                 }}
