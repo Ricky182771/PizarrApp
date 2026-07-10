@@ -285,6 +285,58 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /* ── Prevent mobile browser pull-to-refresh and history swipe navigation ── */
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        // Prevent multi-touch pinch zoom
+        if (e.cancelable) e.preventDefault()
+      }
+
+      const touch = e.touches[0]
+      const edgeThreshold = 25
+      const isNearEdge = touch.clientX < edgeThreshold || touch.clientX > window.innerWidth - edgeThreshold
+
+      if (isNearEdge) {
+        const target = e.target as HTMLElement
+        const isInteractive =
+          target.closest('button') ||
+          target.closest('input') ||
+          target.closest('select') ||
+          target.closest('textarea') ||
+          target.closest('.cursor-grab') ||
+          target.closest('.cursor-pointer') ||
+          target.closest('[role="button"]')
+
+        if (!isInteractive && e.cancelable) {
+          e.preventDefault()
+        }
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement
+      const isInteractive =
+        target.closest('button') ||
+        target.closest('input') ||
+        target.closest('select') ||
+        target.closest('textarea') ||
+        target.closest('a')
+
+      if (!isInteractive && e.cancelable) {
+        e.preventDefault()
+      }
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: false })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+    }
+  }, [])
+
   /* ── Share link helpers ───────────────────────────────────────────── */
   const generateShareLink = async () => {
     const data: TacticaGuardada = {

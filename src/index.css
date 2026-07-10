@@ -43,6 +43,10 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100%;
+  width: 100%;
 }
 
 body {
@@ -50,14 +54,19 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-surface-900);
   color: var(--color-text-primary);
-  min-height: 100dvh;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overscroll-behavior: none;
 }
 
 /*
