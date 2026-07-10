@@ -250,6 +250,10 @@ body {
 
 /* Responsive Grid on Mobile */
 @media (max-width: 768px) {
+  .digital-scoreboard-fixed {
+    top: 6px;
+  }
+
   .stadium-scoreboard {
     display: grid;
     grid-template-areas:
@@ -257,10 +261,10 @@ body {
       "local-score colon-sep visitante-score";
     grid-template-columns: 1fr auto 1fr;
     grid-template-rows: auto auto;
-    gap: 8px;
-    padding: 10px 8px;
-    width: 290px;
-    border-radius: 14px;
+    gap: 4px 6px;
+    padding: 6px 8px;
+    width: 270px;
+    border-radius: 10px;
     align-items: center;
     justify-items: center;
   }
@@ -272,8 +276,8 @@ body {
     clip-path: none !important;
     border-radius: 6px;
     border-right: none;
-    min-height: 34px;
-    padding: 4px 8px;
+    min-height: 28px;
+    padding: 3px 6px;
   }
 
   .scoreboard-team-visitante {
@@ -283,33 +287,45 @@ body {
     clip-path: none !important;
     border-radius: 6px;
     border-left: none;
-    min-height: 34px;
-    padding: 4px 8px;
+    min-height: 28px;
+    padding: 3px 6px;
   }
 
   .scoreboard-vs-badge {
     grid-area: vs-badge;
     position: static !important;
     transform: none !important;
-    font-size: 8px;
-    padding: 1px 5px;
-    margin: 0 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    font-size: 7px;
+    padding: 1px 4px;
+    margin: 0 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 
   .scoreboard-score-local-container {
     grid-area: local-score;
-    padding: 2px;
+    padding: 0;
   }
 
   .scoreboard-colon-container {
     grid-area: colon-sep;
-    padding: 2px;
+    padding: 0;
+    font-size: 16px;
   }
 
   .scoreboard-score-visitante-container {
     grid-area: visitante-score;
-    padding: 2px;
+    padding: 0;
+  }
+
+  .digital-score-box {
+    width: 44px;
+    height: 32px;
+    border-radius: 4px;
+  }
+
+  .digital-score-value {
+    font-size: 22px;
+    letter-spacing: 0.5px;
   }
 }
 
