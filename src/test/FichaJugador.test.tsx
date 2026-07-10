@@ -21,7 +21,7 @@ describe('FichaJugador', () => {
     expect(screen.getByText('Messi')).toBeInTheDocument();
   });
 
-  it('shows edit input on double click and calls onNameChange on Enter', () => {
+  it('shows edit modal on click and calls onNameChange on save', () => {
     const constraintsRef = createRef<HTMLDivElement>();
     const onNameChange = vi.fn();
     
@@ -38,14 +38,16 @@ describe('FichaJugador', () => {
     );
 
     const nameSpan = screen.getByText('Messi');
-    fireEvent.doubleClick(nameSpan);
+    fireEvent.click(nameSpan);
 
-    const input = screen.getByRole('textbox') as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Nombre del jugador') as HTMLInputElement;
     expect(input).toBeInTheDocument();
     expect(input.value).toBe('Messi');
 
     fireEvent.change(input, { target: { value: 'L. Messi' } });
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    
+    const saveBtn = screen.getByText('Guardar Cambios');
+    fireEvent.click(saveBtn);
 
     expect(onNameChange).toHaveBeenCalledWith('L. Messi');
   });

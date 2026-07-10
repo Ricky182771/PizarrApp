@@ -33,7 +33,8 @@ export interface FichaJugadorProps {
  * Renders a t-shirt SVG (back view) with the player's number and name.
  * Uses pointer events for drag so the token positions correctly
  * with percentage-based coordinates without any accumulated offsets.
- * On mobile, a single tap opens a bottom sheet context menu for editing and deletion.
+ * Clicking a player opens a responsive dialog (bottom sheet on mobile, centered modal on desktop)
+ * to easily edit their details or delete them.
  */
 export default function FichaJugador({
   numero,
@@ -50,21 +51,19 @@ export default function FichaJugador({
 }: FichaJugadorProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [editingNumber, setEditingNumber] = useState(false);
   
   // Track if a drag operation actually occurred
   const hasDraggedRef = useRef(false);
 
-  // Mobile sheet states
-  const [showMobileSheet, setShowMobileSheet] = useState(false);
+  // Modal sheet states
+  const [showModal, setShowModal] = useState(false);
   const [tempNombre, setTempNombre] = useState(nombre);
   const [tempNumero, setTempNumero] = useState(numero.toString());
 
-  const handleOpenSheet = () => {
+  const handleOpenModal = () => {
     setTempNombre(nombre);
     setTempNumero(numero.toString());
-    setShowMobileSheet(true);
+    setShowModal(true);
   };
 
   const handleApplyChanges = () => {
@@ -76,11 +75,11 @@ export default function FichaJugador({
     if (!isNaN(parsed) && parsed !== numero && parsed >= 0) {
       onNumberChange?.(parsed);
     }
-    setShowMobileSheet(false);
+    setShowModal(false);
   };
 
   const handleDelete = () => {
-    setShowMobileSheet(false);
+    setShowModal(false);
     onDelete?.(numero);
   };
 
@@ -97,28 +96,12 @@ export default function FichaJugador({
     },
   });
 
-  const handleFinishEdit = (value: string) => {
-    setEditing(false);
-    const trimmed = value.trim();
-    if (trimmed && trimmed !== nombre) {
-      onNameChange?.(trimmed);
-    }
-  };
-
-  const handleFinishEditNumber = (value: string) => {
-    setEditingNumber(false);
-    const parsed = parseInt(value, 10);
-    if (!isNaN(parsed) && parsed !== numero && parsed >= 0) {
-      onNumberChange?.(parsed);
-    }
-  };
-
-  const renderMobileSheet = () => {
-    if (!showMobileSheet) return null;
+  const renderModal = () => {
+    if (!showModal) return null;
 
     return createPortal(
       <div 
-        className="fixed inset-0 z-[200] flex items-end justify-center"
+        className="fixed inset-0 z-[200] flex items-end justify-center md:items-center"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Backdrop overlay */}
@@ -127,13 +110,13 @@ export default function FichaJugador({
           onClick={handleApplyChanges}
         />
 
-        {/* Bottom Sheet Modal */}
+        {/* Dialog container (Bottom Sheet on mobile, Centered Modal on desktop) */}
         <div 
-          className="relative w-full max-w-md bg-surface-800 border-t border-white/10 rounded-t-3xl p-6 pb-8 z-10 flex flex-col gap-4 shadow-2xl animate-in slide-in-from-bottom duration-300"
+          className="relative w-full max-w-md md:max-w-sm bg-surface-800 border border-white/10 rounded-t-3xl md:rounded-2xl p-6 pb-8 z-10 flex flex-col gap-4 shadow-2xl animate-in slide-in-from-bottom md:zoom-in-95 duration-300 md:my-auto md:mx-4"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Top handle bar */}
-          <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2" />
+          {/* Top handle bar (mobile only) */}
+          <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-2 md:hidden" />
 
           {/* Header */}
           <div className="flex items-center gap-4">
@@ -144,7 +127,7 @@ export default function FichaJugador({
               <span className="text-white font-black text-xl">{tempNumero}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs text-text-secondary font-bold uppercase tracking-wider">Detalles del Jugador</span>
+              <span className="text-[10px] text-text-secondary font-bold uppercase tracking-wider">Detalles del Jugador</span>
               <span className="text-base font-bold text-text-primary">{tempNombre || 'Jugador'}</span>
             </div>
           </div>
@@ -194,7 +177,7 @@ export default function FichaJugador({
                 Eliminar Jugador
               </button>
               <button
-                onClick={() => setShowMobileSheet(false)}
+                onClick={() => setShowModal(false)}
                 className="py-3 rounded-xl bg-surface-700 hover:bg-surface-600 text-text-secondary text-xs font-bold transition-all duration-200 active:scale-98 cursor-pointer"
               >
                 Cancelar
@@ -212,34 +195,24 @@ export default function FichaJugador({
       <div
         onPointerDown={(e) => {
           hasDraggedRef.current = false;
-          if (!editing && !editingNumber && !showMobileSheet) {
+          if (!showModal) {
             onPointerDown(e);
           }
         }}
         onClick={(e) => {
           e.stopPropagation();
-          if (isMobile && !hasDraggedRef.current) {
-            handleOpenSheet();
+          if (!hasDraggedRef.current) {
+            handleOpenModal();
           }
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onDoubleClick={(e) => {
-          if (isMobile) return;
-          e.stopPropagation();
-          const target = e.target as HTMLElement;
-          if (target.closest('.player-name-label')) {
-            setEditing(true);
-          } else {
-            setEditingNumber(true);
-          }
-        }}
         className="absolute flex flex-col items-center gap-0.5 select-none touch-none"
         style={{
           left: `${x}%`,
           top: `${y}%`,
           transform: 'translate(-50%, -50%)',
-          cursor: editing ? 'auto' : isDragging ? 'grabbing' : 'grab',
+          cursor: isDragging ? 'grabbing' : 'pointer',
           zIndex: isDragging ? 50 : hovered ? 40 : 10,
           transition: isDragging ? 'none' : 'filter 0.15s ease',
           filter: isDragging ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' : 'none',
@@ -248,64 +221,13 @@ export default function FichaJugador({
       >
         {/* ── T-shirt SVG (football jersey back view) ─────────────── */}
         <div
-          className="relative"
+          className="relative animate-in zoom-in-95 duration-200"
           style={{
             width: isMobile ? 'clamp(30px, 8vw, 44px)' : 'clamp(34px, 4vw, 56px)',
             height: isMobile ? 'clamp(32px, 8.5vw, 46px)' : 'clamp(36px, 4.2vw, 58px)',
             filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.4))',
           }}
         >
-          {editingNumber && !isMobile && (
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoFocus
-              defaultValue={numero}
-              onBlur={(e) => handleFinishEditNumber(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleFinishEditNumber((e.target as HTMLInputElement).value);
-                if (e.key === 'Escape') setEditingNumber(false);
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute inset-0 m-auto w-8 h-8 rounded bg-black/85 text-white font-bold text-center border border-accent-400/40 outline-none z-50 flex items-center justify-center text-sm select-text"
-            />
-          )}
-          {/* Edit number button */}
-          {!isMobile && hovered && !editingNumber && !editing && (
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingNumber(true);
-              }}
-              className="absolute -top-1 -left-1 z-50 w-4 h-4 rounded-full
-                         bg-accent-500 hover:bg-accent-400 text-white text-[8px]
-                         flex items-center justify-center font-bold leading-none
-                         shadow-md cursor-pointer transition-colors"
-              title="Editar número"
-            >
-              #
-            </button>
-          )}
-          {/* Delete button */}
-          {!isMobile && hovered && !editing && (
-            <button
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete?.(numero);
-              }}
-              className="absolute -top-1 -right-1 z-50 w-4 h-4 rounded-full
-                         bg-red-500 hover:bg-red-400 text-white text-[9px]
-                         flex items-center justify-center leading-none
-                         shadow-md cursor-pointer transition-colors"
-            >
-              ×
-            </button>
-          )}
-
           <svg
             viewBox="0 0 64 68"
             fill="none"
@@ -345,54 +267,33 @@ export default function FichaJugador({
             <line x1="16" y1="21" x2="22" y2="5" stroke="rgba(255,255,255,0.18)" strokeWidth="0.8" />
             <line x1="48" y1="21" x2="42" y2="5" stroke="rgba(255,255,255,0.18)" strokeWidth="0.8" />
             {/* Number text on back */}
-            {!editingNumber && (
-              <text
-                x="32"
-                y="44"
-                textAnchor="middle"
-                fill="white"
-                fontSize="22"
-                fontWeight="bold"
-                fontFamily="system-ui, sans-serif"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-              >
-                {numero}
-              </text>
-            )}
+            <text
+              x="32"
+              y="44"
+              textAnchor="middle"
+              fill="white"
+              fontSize="22"
+              fontWeight="bold"
+              fontFamily="system-ui, sans-serif"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+            >
+              {numero}
+            </text>
           </svg>
         </div>
 
-        {/* ── Name label (editable on double-click) ────────────────── */}
-        {editing && !isMobile ? (
-          <input
-            autoFocus
-            defaultValue={nombre}
-            onBlur={(e) => handleFinishEdit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleFinishEdit((e.target as HTMLInputElement).value);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            className="px-1 py-0 rounded bg-black/70 text-white font-semibold text-center
-                       border border-white/30 outline-none select-text"
-            style={{
-              fontSize: 'clamp(7px, 0.8vw, 11px)',
-              width: 'clamp(40px, 4vw, 64px)',
-            }}
-          />
-        ) : (
-          <span
-            onPointerDown={(e) => e.stopPropagation()}
-            className="player-name-label font-semibold text-white text-center leading-tight whitespace-nowrap drop-shadow-md cursor-pointer"
-            style={{ fontSize: isMobile ? 'clamp(7px, 2.2vw, 10px)' : 'clamp(7px, 0.8vw, 11px)' }}
-          >
-            {nombre}
-          </span>
-        )}
+        {/* ── Name label ────────────────── */}
+        <span
+          onPointerDown={(e) => e.stopPropagation()}
+          className="player-name-label font-semibold text-white text-center leading-tight whitespace-nowrap drop-shadow-md cursor-pointer"
+          style={{ fontSize: isMobile ? 'clamp(7px, 2.2vw, 10px)' : 'clamp(7px, 0.8vw, 11px)' }}
+        >
+          {nombre}
+        </span>
       </div>
 
-      {/* Render the mobile contextual bottom sheet via React Portal */}
-      {renderMobileSheet()}
+      {/* Render the responsive dialog via React Portal */}
+      {renderModal()}
     </>
   );
 }
