@@ -85,9 +85,11 @@ export default function FichaJugador({
 
   const { onPointerDown } = usePercentDrag({
     containerRef: constraintsRef,
-    onMove: (nx, ny) => {
+    onDragStart: () => {
       hasDraggedRef.current = true;
       setIsDragging(true);
+    },
+    onMove: (nx, ny) => {
       onDragEnd?.(nx, ny);
     },
     onEnd: (nx, ny) => {
@@ -142,8 +144,10 @@ export default function FichaJugador({
                 type="text"
                 value={tempNombre}
                 onChange={(e) => setTempNombre(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyChanges(); }}
                 className="w-full px-3.5 py-3 rounded-xl bg-surface-900 text-text-primary text-sm font-semibold border border-border focus:ring-1 focus:ring-accent-500/30 outline-none transition-all select-text"
                 placeholder="Nombre del jugador"
+                autoFocus
               />
             </div>
 
@@ -153,8 +157,11 @@ export default function FichaJugador({
                 type="number"
                 pattern="[0-9]*"
                 inputMode="numeric"
+                min="0"
+                max="99"
                 value={tempNumero}
                 onChange={(e) => setTempNumero(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleApplyChanges(); }}
                 className="w-full px-3.5 py-3 rounded-xl bg-surface-900 text-text-primary text-sm font-semibold border border-border focus:ring-1 focus:ring-accent-500/30 outline-none transition-all select-text"
                 placeholder="Número"
               />

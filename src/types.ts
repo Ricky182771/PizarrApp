@@ -1,6 +1,6 @@
 /* ── Shared types for field annotations ────────────────────────────────── */
 
-export type ElementType = 'ball' | 'cone' | 'text';
+export type ElementType = 'ball' | 'cone' | 'text' | 'goal' | 'dummy';
 
 export interface FieldElement {
   id: string;
@@ -9,6 +9,7 @@ export interface FieldElement {
   y: number;
   text?: string;
   scale?: number;
+  rotation?: number; // in degrees, e.g. 0 to 360
 }
 
 export interface ArrowItem {
@@ -66,11 +67,12 @@ export function isValidFieldElement(el: unknown): el is FieldElement {
   const o = el as Record<string, unknown>;
   return (
     typeof o.id === 'string' &&
-    (o.type === 'ball' || o.type === 'cone' || o.type === 'text') &&
+    (o.type === 'ball' || o.type === 'cone' || o.type === 'text' || o.type === 'goal' || o.type === 'dummy') &&
     typeof o.x === 'number' && Number.isFinite(o.x) && o.x >= 0 && o.x <= 100 &&
     typeof o.y === 'number' && Number.isFinite(o.y) && o.y >= 0 && o.y <= 100 &&
     (o.text === undefined || (typeof o.text === 'string' && o.text.length <= 200)) &&
-    (o.scale === undefined || (typeof o.scale === 'number' && o.scale >= 0.5 && o.scale <= 3))
+    (o.scale === undefined || (typeof o.scale === 'number' && o.scale >= 0.5 && o.scale <= 3)) &&
+    (o.rotation === undefined || (typeof o.rotation === 'number' && Number.isFinite(o.rotation)))
   );
 }
 

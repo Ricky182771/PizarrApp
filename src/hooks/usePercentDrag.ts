@@ -11,19 +11,30 @@ export function usePercentDrag({
   containerRef,
   onMove,
   onEnd,
+  onDragStart,
+  dragThreshold = 8,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   onMove?: (x: number, y: number) => void;
   onEnd?: (x: number, y: number) => void;
+  /** Called once when the drag threshold is first exceeded */
+  onDragStart?: () => void;
+  /** Minimum px distance pointer must move before drag begins (default: 8) */
+  dragThreshold?: number;
 }) {
   const dragging = useRef(false);
+  /** Whether the drag threshold has been exceeded for the current gesture */
+  const thresholdExceeded = useRef(false);
   const elRef = useRef<HTMLElement | null>(null);
   // Offset from pointer to element center so the drag doesn't "jump"
   const offsetRef = useRef({ dx: 0, dy: 0 });
+  // Initial pointer position for threshold calculation
+  const startPos = useRef({ x: 0, y: 0 });
 
   // Refs to store active event listeners so they can be cleaned up on unmount
   const activeMoveRef = useRef<((e: PointerEvent) => void) | null>(null);
   const activeUpRef = useRef<((e: PointerEvent) => void) | null>(null);
+  const activeTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
   const toPercent = useCallback(
     (clientX: number, clientY: number): [number, number] => {
@@ -48,6 +59,9 @@ export function usePercentDrag({
       if (activeUpRef.current) {
         document.removeEventListener('pointerup', activeUpRef.current);
       }
+      if (activeTouchMoveRef.current) {
+        document.removeEventListener('touchmove', activeTouchMoveRef.current);
+      }
     };
   }, []);
 
@@ -57,9 +71,13 @@ export function usePercentDrag({
       if (e.button !== 0) return;
       e.stopPropagation();
       dragging.current = true;
+      thresholdExceeded.current = false;
       const el = e.currentTarget as HTMLElement;
       elRef.current = el;
       el.setPointerCapture(e.pointerId);
+
+      // Store the initial pointer position for threshold calculation
+      startPos.current = { x: e.clientX, y: e.clientY };
 
       // Calculate offset from pointer to element center
       const elRect = el.getBoundingClientRect();
@@ -73,9 +91,26 @@ export function usePercentDrag({
         };
       }
 
+      // Prevent page scrolling on touch devices during drag
+      const handleTouchMove = (ev: TouchEvent) => {
+        if (dragging.current) ev.preventDefault();
+      };
+
       const handlePointerMove = (ev: PointerEvent) => {
         if (!dragging.current) return;
         ev.preventDefault();
+
+        // Check if the drag threshold has been exceeded
+        if (!thresholdExceeded.current) {
+          const dx = ev.clientX - startPos.current.x;
+          const dy = ev.clientY - startPos.current.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < dragThreshold) return;
+          // Threshold exceeded — mark and notify
+          thresholdExceeded.current = true;
+          onDragStart?.();
+        }
+
         const [px, py] = toPercent(ev.clientX, ev.clientY);
         onMove?.(px, py);
       };
@@ -83,23 +118,30 @@ export function usePercentDrag({
       const handlePointerUp = (ev: PointerEvent) => {
         if (!dragging.current) return;
         dragging.current = false;
-        const [px, py] = toPercent(ev.clientX, ev.clientY);
-        onEnd?.(px, py);
+        // Only fire onEnd if a real drag occurred
+        if (thresholdExceeded.current) {
+          const [px, py] = toPercent(ev.clientX, ev.clientY);
+          onEnd?.(px, py);
+        }
         elRef.current?.releasePointerCapture(ev.pointerId);
         document.removeEventListener('pointermove', handlePointerMove);
         document.removeEventListener('pointerup', handlePointerUp);
+        document.removeEventListener('touchmove', handleTouchMove);
         activeMoveRef.current = null;
         activeUpRef.current = null;
+        activeTouchMoveRef.current = null;
       };
 
       activeMoveRef.current = handlePointerMove;
       activeUpRef.current = handlePointerUp;
+      activeTouchMoveRef.current = handleTouchMove;
 
       document.addEventListener('pointermove', handlePointerMove);
       document.addEventListener('pointerup', handlePointerUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
     },
-    [containerRef, toPercent, onMove, onEnd],
+    [containerRef, toPercent, onMove, onEnd, onDragStart, dragThreshold],
   );
 
-  return { onPointerDown };
+  return { onPointerDown, thresholdExceeded };
 }

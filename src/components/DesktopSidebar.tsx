@@ -18,6 +18,9 @@ import {
   ChevronDown,
   ChevronRight,
   Icon,
+  FolderOpen,
+  Goal,
+  Shield,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -38,6 +41,10 @@ interface DesktopSidebarProps {
   teamConfigContent: React.ReactNode;
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
+  slotNames: [string, string, string];
+  onSaveSlot: (slotIndex: number) => void;
+  onLoadSlot: (slotIndex: number) => void;
+  onDeleteSlot: (slotIndex: number) => void;
 }
 
 /* ── Collapsible section wrapper ─────────────────────────────────────── */
@@ -101,9 +108,14 @@ export default function DesktopSidebar({
   teamConfigContent,
   mostrarMarcador,
   setMostrarMarcador,
+  slotNames,
+  onSaveSlot,
+  onLoadSlot,
+  onDeleteSlot,
 }: DesktopSidebarProps) {
   const [extrasOpen, setExtrasOpen] = useState(true);
   const [teamsOpen, setTeamsOpen] = useState(true);
+  const [tacticsOpen, setTacticsOpen] = useState(true);
   const [exportOpen, setExportOpen] = useState(true);
   const [shareOpen, setShareOpen] = useState(true);
 
@@ -131,6 +143,18 @@ export default function DesktopSidebar({
       label: 'Texto',
       icon: <Type size={20} strokeWidth={2} className="text-cyan-400" />,
       bg: 'hover:bg-cyan-500/10 hover:border-cyan-500/20',
+    },
+    {
+      type: 'goal' as const,
+      label: 'Portería',
+      icon: <Goal size={20} strokeWidth={2} className="text-rose-400" />,
+      bg: 'hover:bg-rose-500/10 hover:border-rose-500/20',
+    },
+    {
+      type: 'dummy' as const,
+      label: 'Barrera',
+      icon: <Shield size={20} strokeWidth={2} className="text-lime-400" />,
+      bg: 'hover:bg-lime-500/10 hover:border-lime-500/20',
     },
   ];
 
@@ -167,7 +191,7 @@ export default function DesktopSidebar({
       </div>
 
       {/* ── Scrollable content ──────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
+      <div className="flex-1 overflow-y-auto overflow-x-clip scrollbar-thin">
 
         {/* ── Scoreboard Toggle ─────────────────────────────────────── */}
         <div className="px-4 py-3 border-b border-white/5">
@@ -240,41 +264,55 @@ export default function DesktopSidebar({
           {teamConfigContent}
         </Section>
 
-        {/* ── Actions (always visible) ─────────────────────────────── */}
-        <div className="px-4 py-3 border-b border-white/5 space-y-1.5">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-1 mb-1 block">
-            Pizarra
-          </span>
-          <button
-            onClick={onGuardar}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left
-                       hover:bg-accent-500/10 transition-all cursor-pointer group active:scale-[0.98]"
-          >
-            <div className="w-8 h-8 rounded-lg bg-accent-500/10 text-accent-400 flex items-center justify-center border border-accent-500/15 shrink-0
-                            group-hover:bg-accent-500/20 group-hover:border-accent-500/25 transition-colors">
-              <Save size={15} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-text-primary leading-tight">Guardar Táctica</span>
-              <span className="text-[9px] text-text-muted leading-tight">Guarda progreso localmente</span>
-            </div>
-          </button>
-          <button
-            onClick={onReiniciar}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left
-                       hover:bg-red-500/10 text-red-400/80 hover:text-red-400
-                       transition-all cursor-pointer group active:scale-[0.98]"
-          >
-            <div className="w-8 h-8 rounded-lg bg-red-500/8 text-red-400 flex items-center justify-center border border-red-500/15 shrink-0
-                            group-hover:bg-red-500/15 group-hover:border-red-500/25 transition-colors">
-              <RotateCcw size={15} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold leading-tight">Reiniciar Cancha</span>
-              <span className="text-[9px] opacity-60 leading-tight">Limpia y resetea fichas</span>
-            </div>
-          </button>
-        </div>
+        {/* ── Tactic Slots Section ──────────────────────────────────── */}
+        <Section
+          title="Tácticas"
+          icon={<FolderOpen size={12} className="text-amber-400" />}
+          open={tacticsOpen}
+          onToggle={() => setTacticsOpen(!tacticsOpen)}
+        >
+          <div className="space-y-2">
+            {([0, 1, 2] as const).map((slotIdx) => {
+              const name = slotNames[slotIdx]
+              const isEmpty = !name
+              return (
+                <div key={`slot-${slotIdx}`} className="flex items-center gap-1.5">
+                  <div className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-surface-700/40 border border-border">
+                    <span className={`text-[10px] font-semibold leading-tight block truncate ${isEmpty ? 'text-text-muted italic' : 'text-text-primary'}`}>
+                      {isEmpty ? `Táctica ${slotIdx + 1} · vacía` : name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onSaveSlot(slotIdx)}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-accent-500/10 text-accent-400 border border-accent-500/15 hover:bg-accent-500/20 hover:border-accent-500/25 transition-all cursor-pointer active:scale-95"
+                    title={`Guardar en Táctica ${slotIdx + 1}`}
+                  >
+                    <Save size={13} />
+                  </button>
+                  <button
+                    onClick={() => onLoadSlot(slotIdx)}
+                    disabled={isEmpty}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 hover:bg-emerald-500/20 hover:border-emerald-500/25 transition-all cursor-pointer active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={`Cargar Táctica ${slotIdx + 1}`}
+                  >
+                    <RotateCcw size={13} />
+                  </button>
+                  {!isEmpty && (
+                    <button
+                      onClick={() => onDeleteSlot(slotIdx)}
+                      className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 border border-red-500/15 hover:bg-red-500/20 hover:border-red-500/25 transition-all cursor-pointer active:scale-95"
+                      title={`Borrar Táctica ${slotIdx + 1}`}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+
+
 
         {/* ── Export Section ────────────────────────────────────────── */}
         <Section

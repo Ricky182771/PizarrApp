@@ -17,7 +17,9 @@ import {
   Copy,
   Check,
   Eye,
-  EyeOff
+  EyeOff,
+  Goal,
+  Shield,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -40,6 +42,11 @@ interface FloatingMenuProps {
 
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
+
+  slotNames: [string, string, string];
+  onSaveSlot: (slotIndex: number) => void;
+  onLoadSlot: (slotIndex: number) => void;
+  onDeleteSlot: (slotIndex: number) => void;
 }
 
 export default function FloatingMenu({
@@ -57,7 +64,11 @@ export default function FloatingMenu({
   setIsTeamConfigOpen,
   teamConfigContent,
   mostrarMarcador,
-  setMostrarMarcador
+  setMostrarMarcador,
+  slotNames,
+  onSaveSlot,
+  onLoadSlot,
+  onDeleteSlot,
 }: FloatingMenuProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -71,8 +82,8 @@ export default function FloatingMenu({
   const clickStartRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Initial position on mount (bottom right of the window)
-    const initialX = window.innerWidth - 80;
+    // Initial position on mount (bottom left of the window)
+    const initialX = 16;
     const initialY = window.innerHeight - 150;
     setPosition({ x: initialX, y: initialY });
     setIsMounted(true);
@@ -229,6 +240,18 @@ export default function FloatingMenu({
       label: 'Texto',
       desc: 'Etiqueta de texto libre',
       icon: <Type size={18} strokeWidth={2} className="text-cyan-400" />,
+    },
+    {
+      type: 'goal' as const,
+      label: 'Portería',
+      desc: 'Portería pop-up de práctica',
+      icon: <Goal size={18} strokeWidth={2} className="text-rose-400" />,
+    },
+    {
+      type: 'dummy' as const,
+      label: 'Barrera',
+      desc: 'Barrera de entrenamiento',
+      icon: <Shield size={18} strokeWidth={2} className="text-lime-400" />,
     },
   ];
 
@@ -399,35 +422,49 @@ export default function FloatingMenu({
                 {isSettingsOpen && (
                   <div className={`z-[100] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl animate-in fade-in duration-150 md:absolute md:w-[300px] ${popoverPositionClass} popover-mobile`}>
                     <div className="space-y-4">
-                      {/* Board Actions */}
-                      <div>
-                        <h4 className="text-[9px] font-bold uppercase tracking-wider text-text-muted mb-2 px-1">Pizarra</h4>
-                        <div className="space-y-1">
-                          <button 
-                            onClick={() => { closeAll(); onGuardar(); }} 
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-surface-600 transition-colors group cursor-pointer"
-                          >
-                            <div className="w-7 h-7 rounded bg-accent-500/10 text-accent-400 flex items-center justify-center border border-accent-500/20 shrink-0">
-                              <Save size={14} />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-semibold text-text-primary leading-tight">Guardar Táctica</span>
-                              <span className="text-[9px] text-text-muted leading-tight">Guarda el progreso localmente</span>
-                            </div>
-                          </button>
 
-                          <button 
-                            onClick={() => { closeAll(); onReiniciar(); }} 
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-red-500/10 text-red-400 transition-colors group cursor-pointer"
-                          >
-                            <div className="w-7 h-7 rounded bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20 shrink-0">
-                              <RotateCcw size={14} />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-semibold leading-tight">Reiniciar Cancha</span>
-                              <span className="text-[9px] opacity-70 leading-tight">Limpia y resetea las fichas</span>
-                            </div>
-                          </button>
+
+                      {/* Tactic Slots */}
+                      <div>
+                        <h4 className="text-[9px] font-bold uppercase tracking-wider text-text-muted mb-2 px-1">Tácticas Guardadas</h4>
+                        <div className="space-y-1.5">
+                          {([0, 1, 2] as const).map((slotIdx) => {
+                            const name = slotNames[slotIdx]
+                            const isEmpty = !name
+                            return (
+                              <div key={`slot-${slotIdx}`} className="flex items-center gap-1.5">
+                                <div className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg bg-surface-800 border border-border">
+                                  <span className={`text-[10px] font-semibold leading-tight block truncate ${isEmpty ? 'text-text-muted italic' : 'text-text-primary'}`}>
+                                    {isEmpty ? `Táctica ${slotIdx + 1} · vacía` : name}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => { onSaveSlot(slotIdx); }}
+                                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-accent-500/10 text-accent-400 border border-accent-500/20 hover:bg-accent-500/20 transition-colors cursor-pointer active:scale-90"
+                                  title={`Guardar en Táctica ${slotIdx + 1}`}
+                                >
+                                  <Save size={12} />
+                                </button>
+                                <button
+                                  onClick={() => { closeAll(); onLoadSlot(slotIdx); }}
+                                  disabled={isEmpty}
+                                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title={`Cargar Táctica ${slotIdx + 1}`}
+                                >
+                                  <RotateCcw size={12} />
+                                </button>
+                                {!isEmpty && (
+                                  <button
+                                    onClick={() => { onDeleteSlot(slotIdx); }}
+                                    className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer active:scale-90"
+                                    title={`Borrar Táctica ${slotIdx + 1}`}
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
 

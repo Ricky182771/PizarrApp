@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Cancha from './components/Cancha'
 import FichaJugador from './components/FichaJugador'
 import FloatingMenu from './components/FloatingMenu'
@@ -93,6 +94,39 @@ function loadFromLS(): TacticaGuardada | null {
     return isValidTacticaGuardada(data) ? data : null
   } catch {
     return null
+  }
+}
+
+/* ── Tactic Slot helpers (3 local slots) ─────────────────────────────── */
+const LS_SLOT_KEYS = [
+  'pizarra-tactica-slot-1',
+  'pizarra-tactica-slot-2',
+  'pizarra-tactica-slot-3',
+] as const
+
+function loadSlot(slotIndex: number): TacticaGuardada | null {
+  try {
+    const key = LS_SLOT_KEYS[slotIndex]
+    if (!key) return null
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const data: unknown = JSON.parse(raw)
+    return isValidTacticaGuardada(data) ? data : null
+  } catch {
+    return null
+  }
+}
+
+function getSlotName(slotIndex: number): string {
+  try {
+    const key = LS_SLOT_KEYS[slotIndex]
+    if (!key) return ''
+    const raw = localStorage.getItem(key)
+    if (!raw) return ''
+    const data = JSON.parse(raw) as Record<string, unknown>
+    return (data.tacticName as string) || `Táctica ${slotIndex + 1}`
+  } catch {
+    return ''
   }
 }
 
@@ -202,6 +236,11 @@ function App() {
 
   // Alignment configuration popup state
   const [isTeamConfigOpen, setIsTeamConfigOpen] = useState(false)
+
+  const [activeColorPicker, setActiveColorPicker] = useState<{
+    team: 'local' | 'visitante';
+    rect: DOMRect;
+  } | null>(null);
 
   // Share link state
   const [shareUrl, setShareUrl] = useState('')
@@ -490,7 +529,14 @@ function App() {
         text: type === 'text' ? 'Texto' : undefined,
       }
       setElements((prev) => [...prev, newElement])
-      showToast(`+ ${type === 'ball' ? 'Balón' : type === 'cone' ? 'Cono' : 'Texto'} añadido`)
+      const names: Record<ElementType, string> = {
+        ball: 'Balón',
+        cone: 'Cono',
+        text: 'Texto',
+        goal: 'Portería',
+        dummy: 'Barrera',
+      }
+      showToast(`+ ${names[type] || 'Elemento'} añadido`)
     }
   }
 
@@ -525,6 +571,12 @@ function App() {
   const handleElementScaleChange = (id: string, scale: number) => {
     setElements((prev) =>
       prev.map((el) => (el.id === id ? { ...el, scale } : el)),
+    )
+  }
+
+  const handleElementRotationChange = (id: string, rotation: number) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, rotation } : el)),
     )
   }
 
@@ -563,6 +615,66 @@ function App() {
     localStorage.setItem(LS_KEY, JSON.stringify(data))
     showToast('✓ Táctica guardada')
   }
+
+  /* ── Tactic Slots (save/load 3 tactics) ──────────────────────────── */
+  const [slotNames, setSlotNames] = useState<[string, string, string]>(() => [
+    getSlotName(0),
+    getSlotName(1),
+    getSlotName(2),
+  ])
+
+  const refreshSlotNames = useCallback(() => {
+    setSlotNames([getSlotName(0), getSlotName(1), getSlotName(2)])
+  }, [])
+
+  const getCurrentTacticData = useCallback((): TacticaGuardada => ({
+    local, visitante, colorLocal, colorVisitante, elements, arrows, tacticName,
+    nombreLocal, nombreVisitante, golesLocal, golesVisitante, mostrarMarcador,
+    marcadorX, marcadorY,
+  }), [local, visitante, colorLocal, colorVisitante, elements, arrows, tacticName,
+    nombreLocal, nombreVisitante, golesLocal, golesVisitante, mostrarMarcador,
+    marcadorX, marcadorY])
+
+  const guardarEnSlot = useCallback((slotIndex: number) => {
+    const key = LS_SLOT_KEYS[slotIndex]
+    if (!key) return
+    const data = getCurrentTacticData()
+    localStorage.setItem(key, JSON.stringify(data))
+    refreshSlotNames()
+    showToast(`✓ Guardada en Táctica ${slotIndex + 1}`)
+  }, [getCurrentTacticData, refreshSlotNames, showToast])
+
+  const cargarDesdeSlot = useCallback((slotIndex: number) => {
+    const saved = loadSlot(slotIndex)
+    if (!saved) {
+      showToast(`⚠ Táctica ${slotIndex + 1} está vacía`)
+      return
+    }
+    setLocal(deepClone(saved.local))
+    setVisitante(deepClone(saved.visitante))
+    setColorLocal(saved.colorLocal)
+    setColorVisitante(saved.colorVisitante)
+    setElements(deepClone(saved.elements))
+    setArrows(deepClone(saved.arrows))
+    if (saved.tacticName) setTacticName(saved.tacticName)
+    if (saved.nombreLocal) setNombreLocal(saved.nombreLocal)
+    if (saved.nombreVisitante) setNombreVisitante(saved.nombreVisitante)
+    if (saved.golesLocal !== undefined) setGolesLocal(saved.golesLocal)
+    if (saved.golesVisitante !== undefined) setGolesVisitante(saved.golesVisitante)
+    if (saved.mostrarMarcador !== undefined) setMostrarMarcador(saved.mostrarMarcador)
+    if (saved.marcadorX !== undefined) setMarcadorX(saved.marcadorX)
+    if (saved.marcadorY !== undefined) setMarcadorY(saved.marcadorY)
+    setResetKey((k) => k + 1)
+    showToast(`✓ Táctica ${slotIndex + 1} cargada`)
+  }, [showToast])
+
+  const borrarSlot = useCallback((slotIndex: number) => {
+    const key = LS_SLOT_KEYS[slotIndex]
+    if (!key) return
+    localStorage.removeItem(key)
+    refreshSlotNames()
+    showToast(`🗑 Táctica ${slotIndex + 1} borrada`)
+  }, [refreshSlotNames, showToast])
 
   /* ── Reset to initial formation ───────────────────────────────────── */
   const reiniciar = () => {
@@ -832,15 +944,20 @@ function App() {
       const elY = isMobile ? ((100 - el.x) / 100) * h : (el.y / 100) * h
 
       if (el.type === 'ball') {
+        ctx.save()
+        ctx.translate(elX, elY)
+        if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180)
         ctx.font = `${Math.round(28 * scale)}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText('⚽', elX, elY)
+        ctx.fillText('⚽', 0, 0)
+        ctx.restore()
       } else if (el.type === 'cone') {
         const coneW = 36 * scale
         const coneH = 24 * scale
         ctx.save()
         ctx.translate(elX, elY)
+        if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180)
         ctx.fillStyle = '#ea580c'
         ctx.beginPath()
         ctx.ellipse(0, coneH / 2 - 2 * scale, coneW / 2, 4 * scale, 0, 0, Math.PI * 2)
@@ -860,7 +977,113 @@ function App() {
         ctx.ellipse(0, -coneH / 2 + 6 * scale, coneW * 0.2, 2.5 * scale, 0, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
+      } else if (el.type === 'goal') {
+        const goalW = 54 * scale
+        const goalH = 34 * scale
+        ctx.save()
+        ctx.translate(elX, elY)
+        if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'
+        ctx.beginPath()
+        ctx.ellipse(0, goalH * 0.35, goalW * 0.45, 4 * scale, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'
+        ctx.fillRect(-goalW * 0.25, -goalH * 0.2, goalW * 0.5, goalH * 0.5)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
+        ctx.lineWidth = 1 * scale
+        ctx.strokeRect(-goalW * 0.25, -goalH * 0.2, goalW * 0.5, goalH * 0.5)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'
+        ctx.beginPath()
+        ctx.moveTo(-goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(-goalW * 0.25, -goalH * 0.2)
+        ctx.lineTo(-goalW * 0.25, goalH * 0.3)
+        ctx.lineTo(-goalW * 0.5, goalH * 0.3)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(goalW * 0.25, -goalH * 0.2)
+        ctx.lineTo(goalW * 0.25, goalH * 0.3)
+        ctx.lineTo(goalW * 0.5, goalH * 0.3)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(-goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(goalW * 0.25, -goalH * 0.2)
+        ctx.lineTo(-goalW * 0.25, -goalH * 0.2)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 3 * scale
+        ctx.lineCap = 'square'
+        ctx.beginPath()
+        ctx.moveTo(-goalW * 0.5, goalH * 0.3)
+        ctx.lineTo(-goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(goalW * 0.5, -goalH * 0.3)
+        ctx.lineTo(goalW * 0.5, goalH * 0.3)
+        ctx.stroke()
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+        ctx.lineWidth = 0.8 * scale
+        for (let i = -1; i <= 1; i += 2) {
+          ctx.beginPath()
+          ctx.moveTo(goalW * 0.12 * i, -goalH * 0.2)
+          ctx.lineTo(goalW * 0.12 * i, goalH * 0.3)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        ctx.moveTo(-goalW * 0.25, -goalH * 0.04)
+        ctx.lineTo(goalW * 0.25, -goalH * 0.04)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(-goalW * 0.25, goalH * 0.12)
+        ctx.lineTo(goalW * 0.25, goalH * 0.12)
+        ctx.stroke()
+        ctx.restore()
+      } else if (el.type === 'dummy') {
+        const dummyW = 34 * scale
+        const dummyH = 40 * scale
+        ctx.save()
+        ctx.translate(elX, elY)
+        if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+        ctx.beginPath()
+        ctx.ellipse(0, dummyH / 2, dummyW * 0.4, 3 * scale, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = '#475569'
+        ctx.lineWidth = 2.5 * scale
+        ctx.beginPath()
+        ctx.moveTo(0, dummyH / 2)
+        ctx.lineTo(0, dummyH * 0.1)
+        ctx.stroke()
+        ctx.fillStyle = '#a3e635'
+        ctx.strokeStyle = '#84cc16'
+        ctx.lineWidth = 1.5 * scale
+        ctx.beginPath()
+        ctx.roundRect(-dummyW * 0.22, -dummyH * 0.15, dummyW * 0.44, dummyH * 0.5, 3 * scale)
+        ctx.fill()
+        ctx.stroke()
+        ctx.strokeStyle = '#4d7c0f'
+        ctx.lineWidth = 1.5 * scale
+        for (let i = -1; i <= 1; i++) {
+          const yOff = dummyH * 0.1 * i + dummyH * 0.08
+          ctx.beginPath()
+          ctx.moveTo(-dummyW * 0.18, yOff)
+          ctx.lineTo(dummyW * 0.18, yOff)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        ctx.arc(0, -dummyH * 0.3, dummyW * 0.18, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.restore()
       } else if (el.type === 'text') {
+        ctx.save()
+        ctx.translate(elX, elY)
+        if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180)
         ctx.font = `bold ${Math.round(14 * scale)}px system-ui, sans-serif`
         const textVal = el.text ?? 'Texto'
         const textMetrics = ctx.measureText(textVal)
@@ -874,14 +1097,15 @@ function App() {
         const boxH = textH + 10 * scale
 
         ctx.beginPath()
-        ctx.roundRect(elX - boxW / 2, elY - boxH / 2, boxW, boxH, 6 * scale)
+        ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 6 * scale)
         ctx.fill()
         ctx.stroke()
 
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(textVal, elX, elY)
+        ctx.fillText(textVal, 0, 0)
+        ctx.restore()
       }
     })
 
@@ -1261,6 +1485,7 @@ function App() {
             onDelete={handleElementDelete}
             onTextChange={handleElementTextChange}
             onScaleChange={handleElementScaleChange}
+            onRotationChange={handleElementRotationChange}
           />
         )
       })}
@@ -1366,12 +1591,18 @@ function App() {
               </button>
             ))}
           </div>
-          <label className="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border transition-colors cursor-pointer" title="Color de camiseta local">
+          <button
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setActiveColorPicker({ team: 'local', rect });
+            }}
+            className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border transition-colors cursor-pointer"
+            title="Color de camiseta local"
+          >
             <svg viewBox="0 0 64 68" fill="none" className="w-4 h-4" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}>
               <path d="M22 4 C24 2, 40 2, 42 4 L48 3 L56 14 L56 24 L48 21 L48 62 C48 64, 46 66, 44 66 L20 66 C18 66, 16 64, 16 62 L16 21 L8 24 L8 14 L16 3 Z" fill={colorLocal} stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
             </svg>
-            <input type="color" value={colorLocal} onChange={(e) => setColorLocal(e.target.value)} className="sr-only" />
-          </label>
+          </button>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => {
@@ -1430,12 +1661,18 @@ function App() {
               </button>
             ))}
           </div>
-          <label className="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border transition-colors cursor-pointer" title="Color de camiseta visitante">
+          <button
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setActiveColorPicker({ team: 'visitante', rect });
+            }}
+            className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border transition-colors cursor-pointer"
+            title="Color de camiseta visitante"
+          >
             <svg viewBox="0 0 64 68" fill="none" className="w-4 h-4" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}>
               <path d="M22 4 C24 2, 40 2, 42 4 L48 3 L56 14 L56 24 L48 21 L48 62 C48 64, 46 66, 44 66 L20 66 C18 66, 16 64, 16 62 L16 21 L8 24 L8 14 L16 3 Z" fill={colorVisitante} stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
             </svg>
-            <input type="color" value={colorVisitante} onChange={(e) => setColorVisitante(e.target.value)} className="sr-only" />
-          </label>
+          </button>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => {
@@ -1514,6 +1751,10 @@ function App() {
           teamConfigContent={teamConfigContent}
           mostrarMarcador={mostrarMarcador}
           setMostrarMarcador={setMostrarMarcador}
+          slotNames={slotNames}
+          onSaveSlot={guardarEnSlot}
+          onLoadSlot={cargarDesdeSlot}
+          onDeleteSlot={borrarSlot}
         />
         <div
           className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50
@@ -1635,9 +1876,123 @@ function App() {
         teamConfigContent={teamConfigContent}
         mostrarMarcador={mostrarMarcador}
         setMostrarMarcador={setMostrarMarcador}
+        slotNames={slotNames}
+        onSaveSlot={guardarEnSlot}
+        onLoadSlot={cargarDesdeSlot}
+        onDeleteSlot={borrarSlot}
       />
+
+      {activeColorPicker && (
+        <ColorPickerPortal
+          color={activeColorPicker.team === 'local' ? colorLocal : colorVisitante}
+          onChange={(c) => {
+            if (activeColorPicker.team === 'local') {
+              setColorLocal(c);
+            } else {
+              setColorVisitante(c);
+            }
+          }}
+          rect={activeColorPicker.rect}
+          onClose={() => setActiveColorPicker(null)}
+        />
+      )}
     </div>
   )
+}
+
+function ColorPickerPortal({
+  color,
+  onChange,
+  rect,
+  onClose,
+}: {
+  color: string;
+  onChange: (color: string) => void;
+  rect: DOMRect;
+  onClose: () => void;
+}) {
+  const colors = [
+    '#2563eb', // Royal Blue
+    '#dc2626', // Red
+    '#16a34a', // Green
+    '#eab308', // Yellow
+    '#ea580c', // Orange
+    '#9333ea', // Purple
+    '#06b6d4', // Cyan
+    '#f43f5e', // Rose
+    '#ffffff', // White
+    '#64748b', // Slate
+    '#1e293b', // Dark Slate
+    '#0f172a', // Black
+  ];
+
+  // Position the popover to the left of the trigger button
+  const popoverWidth = 200;
+  
+  // Calculate top & left based on the button position
+  const left = rect.left - popoverWidth - 10;
+  const top = rect.top + rect.height / 2 - 90; // center vertically
+
+  return createPortal(
+    <>
+      {/* Backdrop catcher */}
+      <div 
+        className="fixed inset-0 z-[300]" 
+        onClick={onClose} 
+        onPointerDown={(e) => e.stopPropagation()}
+      />
+      
+      {/* Popover Card */}
+      <div
+        className="fixed z-[301] p-3 rounded-2xl bg-surface-700 border border-white/10 shadow-2xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 select-none"
+        onPointerDown={(e) => e.stopPropagation()}
+        style={{
+          width: `${popoverWidth}px`,
+          left: `${Math.max(10, left)}px`,
+          top: `${Math.max(10, top)}px`,
+        }}
+      >
+        <div className="text-[10px] font-bold uppercase tracking-wider text-text-secondary px-1 border-b border-white/5 pb-1.5">
+          Color de camiseta
+        </div>
+        
+        {/* Color grid */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {colors.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                onChange(c);
+                onClose();
+              }}
+              className="w-8 h-8 rounded-lg border transition-all cursor-pointer hover:scale-110 active:scale-95"
+              style={{
+                backgroundColor: c,
+                borderColor: color.toLowerCase() === c.toLowerCase() ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                boxShadow: color.toLowerCase() === c.toLowerCase() ? '0 0 8px rgba(255,255,255,0.4)' : 'none',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Custom color picker option */}
+        <div className="h-px bg-white/5 my-0.5" />
+        
+        <label className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-surface-800/80 hover:bg-surface-600/80 border border-white/5 transition-colors cursor-pointer text-[11px] font-semibold text-text-primary">
+          <span>Personalizado...</span>
+          <div className="w-5 h-5 rounded-md border border-white/10 relative overflow-hidden" style={{ backgroundColor: color }}>
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => onChange(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full scale-150"
+            />
+          </div>
+        </label>
+      </div>
+    </>,
+    document.body
+  );
 }
 
 export default App

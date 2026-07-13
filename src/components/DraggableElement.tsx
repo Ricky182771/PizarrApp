@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { usePercentDrag } from '../hooks/usePercentDrag';
 import type { FieldElement } from '../types';
+import { RotateCw } from 'lucide-react';
 
 interface DraggableElementProps {
   element: FieldElement;
@@ -9,6 +10,7 @@ interface DraggableElementProps {
   onDelete: (id: string) => void;
   onTextChange?: (id: string, text: string) => void;
   onScaleChange?: (id: string, scale: number) => void;
+  onRotationChange?: (id: string, rotation: number) => void;
 }
 
 /* ── Visual renderers per type ────────────────────────────────────────── */
@@ -89,6 +91,54 @@ function TextVisual({
   );
 }
 
+function GoalVisual() {
+  return (
+    <div className="flex items-center justify-center animate-in zoom-in-95 duration-200" style={{ width: 'clamp(44px,4.5vw,64px)', height: 'clamp(30px,3.2vw,44px)' }}>
+      <svg viewBox="0 0 80 50" className="w-full h-full" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.45))' }}>
+        {/* Back net panel */}
+        <rect x="20" y="15" width="40" height="25" fill="rgba(255, 255, 255, 0.08)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        {/* Side net panels (3D perspective) */}
+        {/* Left side net */}
+        <path d="M 10 10 L 20 15 L 20 40 L 10 40 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        {/* Right side net */}
+        <path d="M 70 10 L 60 15 L 60 40 L 70 40 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        {/* Top net panel */}
+        <path d="M 10 10 L 70 10 L 60 15 L 20 15 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        {/* Front main posts & crossbar (white, thick) */}
+        <path d="M 10 40 L 10 10 L 70 10 L 70 40" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="square" />
+        {/* Net mesh lines (grid effect) */}
+        {/* Vertical back lines */}
+        <line x1="30" y1="15" x2="30" y2="40" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+        <line x1="40" y1="15" x2="40" y2="40" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+        <line x1="50" y1="15" x2="50" y2="40" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+        {/* Horizontal back lines */}
+        <line x1="20" y1="23" x2="60" y2="23" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+        <line x1="20" y1="31" x2="60" y2="31" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+      </svg>
+    </div>
+  );
+}
+
+function DummyVisual() {
+  return (
+    <div className="flex items-center justify-center animate-in zoom-in-95 duration-200" style={{ width: 'clamp(32px,3.5vw,48px)', height: 'clamp(36px,3.8vw,52px)' }}>
+      <svg viewBox="0 0 50 60" className="w-full h-full" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.4))' }}>
+        {/* Base stand */}
+        <ellipse cx="25" cy="54" rx="16" ry="4" fill="#1e293b" />
+        <line x1="25" y1="54" x2="25" y2="44" stroke="#475569" strokeWidth="3" />
+        {/* Dummy body (Neon Yellow/Green) */}
+        <rect x="18" y="18" width="14" height="26" rx="4" fill="#a3e635" stroke="#84cc16" strokeWidth="1.5" />
+        {/* Chest bars / rib lines (like training mannequins) */}
+        <line x1="20" y1="24" x2="30" y2="24" stroke="#4d7c0f" strokeWidth="1.5" />
+        <line x1="20" y1="30" x2="30" y2="30" stroke="#4d7c0f" strokeWidth="1.5" />
+        <line x1="20" y1="36" x2="30" y2="36" stroke="#4d7c0f" strokeWidth="1.5" />
+        {/* Head */}
+        <circle cx="25" cy="11" r="7" fill="#a3e635" stroke="#84cc16" strokeWidth="1.5" />
+      </svg>
+    </div>
+  );
+}
+
 /* ── Main component ───────────────────────────────────────────────────── */
 
 export default function DraggableElement({
@@ -98,6 +148,7 @@ export default function DraggableElement({
   onDelete,
   onTextChange,
   onScaleChange,
+  onRotationChange,
 }: DraggableElementProps) {
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -120,6 +171,44 @@ export default function DraggableElement({
       onDragEnd(element.id, nx, ny);
     },
   });
+
+  /* ── Rotation Gesture Handler ── */
+  const handleRotateStart = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!elRef.current) return;
+    const rect = elRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+
+    const initialAngleRad = Math.atan2(e.clientY - cy, e.clientX - cx);
+    const initialRotation = element.rotation ?? 0;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+      moveEvent.stopPropagation();
+      const currentAngleRad = Math.atan2(moveEvent.clientY - cy, moveEvent.clientX - cx);
+      const diffRad = currentAngleRad - initialAngleRad;
+      let diffDeg = diffRad * (180 / Math.PI);
+      
+      let newRotation = (initialRotation + diffDeg) % 360;
+      if (newRotation < 0) newRotation += 360;
+
+      // Snap steps (5 degrees normally, 15 degrees with Shift key)
+      const snapStep = moveEvent.shiftKey ? 15 : 5;
+      newRotation = Math.round(newRotation / snapStep) * snapStep;
+
+      onRotationChange?.(element.id, newRotation);
+    };
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+  };
 
   /* ── Wrapped pointerdown — skip if editing or pinching ── */
   const handlePointerDown = useCallback(
@@ -212,7 +301,7 @@ export default function DraggableElement({
       style={{
         left: `${element.x}%`,
         top: `${element.y}%`,
-        transform: `translate(-50%, -50%) scale(${scale})`,
+        transform: `translate(-50%, -50%) scale(${scale}) rotate(${element.rotation ?? 0}deg)`,
         zIndex: isDragging ? 50 : hovered ? 40 : 10,
         cursor: editing ? 'auto' : isDragging ? 'grabbing' : 'grab',
         transition: isDragging ? 'none' : 'transform 0.15s ease',
@@ -236,9 +325,25 @@ export default function DraggableElement({
         </button>
       )}
 
+      {/* Rotate button — top-left corner */}
+      {hovered && !editing && (
+        <button
+          onPointerDown={handleRotateStart}
+          className="absolute -top-2 -left-2 z-50 w-5 h-5 rounded-full
+                     bg-indigo-600 hover:bg-indigo-500 text-white
+                     flex items-center justify-center shadow-md cursor-pointer transition-colors"
+          style={{ transform: `scale(${1 / scale})` }}
+          title="Arrastrar para rotar (Shift para 15°)"
+        >
+          <RotateCw size={10} strokeWidth={2.5} />
+        </button>
+      )}
+
       {/* Visual */}
       {element.type === 'ball' && <BallVisual />}
       {element.type === 'cone' && <ConeVisual />}
+      {element.type === 'goal' && <GoalVisual />}
+      {element.type === 'dummy' && <DummyVisual />}
       {element.type === 'text' && (
         <TextVisual
           text={element.text ?? 'Texto'}
