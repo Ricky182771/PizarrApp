@@ -594,27 +594,7 @@ function App() {
     showToast('🗑 Extras eliminados')
   }
 
-  /* ── Save to LocalStorage ─────────────────────────────────────────── */
-  const guardarTactica = () => {
-    const data: TacticaGuardada = {
-      local,
-      visitante,
-      colorLocal,
-      colorVisitante,
-      elements,
-      arrows,
-      tacticName,
-      nombreLocal,
-      nombreVisitante,
-      golesLocal,
-      golesVisitante,
-      mostrarMarcador,
-      marcadorX,
-      marcadorY,
-    }
-    localStorage.setItem(LS_KEY, JSON.stringify(data))
-    showToast('✓ Táctica guardada')
-  }
+
 
   /* ── Tactic Slots (save/load 3 tactics) ──────────────────────────── */
   const [slotNames, setSlotNames] = useState<[string, string, string]>(() => [
@@ -676,25 +656,7 @@ function App() {
     showToast(`🗑 Táctica ${slotIndex + 1} borrada`)
   }, [refreshSlotNames, showToast])
 
-  /* ── Reset to initial formation ───────────────────────────────────── */
-  const reiniciar = () => {
-    setLocal(deepClone(formacionLocal))
-    setVisitante(deepClone(formacionVisitante))
-    setColorLocal('#2563eb')
-    setColorVisitante('#dc2626')
-    setNombreLocal('Local')
-    setNombreVisitante('Visitante')
-    setGolesLocal(0)
-    setGolesVisitante(0)
-    setMostrarMarcador(false)
-    setMarcadorX(50)
-    setMarcadorY(7)
-    setElements([])
-    setArrows([])
-    localStorage.removeItem(LS_KEY)
-    setResetKey((k) => k + 1)    // force re-mount to clear drag offsets
-    showToast('↺ Formación reiniciada')
-  }
+
 
   /* ── Render tactic to canvas (shared by PNG & PDF exports) ────────── */
   const renderTacticToCanvas = (): HTMLCanvasElement | null => {
@@ -1738,8 +1700,6 @@ function App() {
         <FloatingMenu
           onAddTool={handleAddTool}
           onClearExtras={clearExtras}
-          onGuardar={guardarTactica}
-          onReiniciar={reiniciar}
           onExportPng={exportWhiteboardAsImage}
           onExportPdf={exportWhiteboardAsPdf}
           generateShareLink={generateShareLink}
@@ -1863,8 +1823,6 @@ function App() {
       <DesktopSidebar
         onAddTool={handleAddTool}
         onClearExtras={clearExtras}
-        onGuardar={guardarTactica}
-        onReiniciar={reiniciar}
         onExportPng={exportWhiteboardAsImage}
         onExportPdf={exportWhiteboardAsPdf}
         generateShareLink={generateShareLink}

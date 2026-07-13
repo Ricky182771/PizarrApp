@@ -28,8 +28,6 @@ import type { ElementType } from '../types';
 interface DesktopSidebarProps {
   onAddTool: (type: ElementType | 'arrow') => void;
   onClearExtras?: () => void;
-  onGuardar: () => void;
-  onReiniciar: () => void;
   onExportPng: () => void;
   onExportPdf: () => void;
   generateShareLink: () => void;
@@ -97,8 +95,6 @@ function Section({
 export default function DesktopSidebar({
   onAddTool,
   onClearExtras,
-  onGuardar,
-  onReiniciar,
   onExportPng,
   onExportPdf,
   generateShareLink,

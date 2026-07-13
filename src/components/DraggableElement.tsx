@@ -201,7 +201,7 @@ export default function DraggableElement({
       onRotationChange?.(element.id, newRotation);
     };
 
-    const handlePointerUp = (upEvent: PointerEvent) => {
+    const handlePointerUp = () => {
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
     };

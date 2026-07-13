@@ -27,8 +27,6 @@ import type { ElementType } from '../types';
 interface FloatingMenuProps {
   onAddTool: (type: ElementType | 'arrow') => void;
   onClearExtras?: () => void;
-  onGuardar: () => void;
-  onReiniciar: () => void;
   onExportPng: () => void;
   onExportPdf: () => void;
   generateShareLink: () => void;
@@ -52,8 +50,6 @@ interface FloatingMenuProps {
 export default function FloatingMenu({
   onAddTool,
   onClearExtras,
-  onGuardar,
-  onReiniciar,
   onExportPng,
   onExportPdf,
   generateShareLink,
