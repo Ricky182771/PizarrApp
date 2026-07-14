@@ -1,4 +1,4 @@
-@import url('https://fonts.cdnfonts.com/css/digital-7');
+/* Traditional scoreboard — no custom font needed */
 @import "tailwindcss";
 
 /*
@@ -108,14 +108,14 @@ body {
 }
 
 /*
- * ── Stadium Scoreboard Styles ───────────────────────────────────────────
+ * ── Traditional Stadium Scoreboard Styles ────────────────────────────────
  */
 .digital-scoreboard-fixed {
   position: fixed;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 105; /* Floating above header and menus */
+  z-index: 105;
   pointer-events: auto;
 }
 @media (max-width: 768px) {
@@ -128,17 +128,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(10, 10, 14, 0.92);
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
   backdrop-filter: blur(12px);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 2px solid;
-  /* Silver metallic gradient effect */
-  border-color: #cbd5e1 #94a3b8 #475569 #e2e8f0;
-  box-shadow: 
-    0 10px 30px -5px rgba(0, 0, 0, 0.8),
-    0 4px 12px -5px rgba(0, 0, 0, 0.6),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-color: #4a4a5a #3a3a4a #2a2a3a #4a4a5a;
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.7),
+    0 2px 8px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -147,14 +145,13 @@ body {
 /* Local Team Banner */
 .scoreboard-team-local {
   position: relative;
-  padding: 6px 24px 6px 16px;
-  /* Angle clip path on the right side */
+  padding: 6px 20px 6px 14px;
   clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%);
   display: flex;
   align-items: center;
   gap: 8px;
   color: #ffffff;
-  border-right: 1.5px solid rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   min-height: 48px;
   flex: 1;
   justify-content: flex-end;
@@ -163,23 +160,22 @@ body {
 /* Visitante Team Banner */
 .scoreboard-team-visitante {
   position: relative;
-  padding: 6px 16px 6px 24px;
-  /* Angle clip path on the left side */
+  padding: 6px 14px 6px 20px;
   clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
   display: flex;
   align-items: center;
   gap: 8px;
   color: #ffffff;
-  border-left: 1.5px solid rgba(0, 0, 0, 0.3);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
   min-height: 48px;
   flex: 1;
   justify-content: flex-start;
 }
 
-/* Flat Score Containers */
+/* Score Containers */
 .scoreboard-score-local-container,
 .scoreboard-score-visitante-container {
-  padding: 6px 8px;
+  padding: 6px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,24 +183,28 @@ body {
 }
 
 .scoreboard-colon-container {
-  color: #22d3ee;
-  font-weight: bold;
-  font-size: 20px;
+  color: #e2e8f0;
+  font-weight: 800;
+  font-size: 22px;
   user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-shadow: 0 0 6px rgba(34, 211, 238, 0.6);
+  text-shadow: none;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Electronic digit box (Wider for 2 digits) */
+/* Traditional solid score box */
 .digital-score-box {
-  background-color: #030304;
-  border: 1.5px solid #1e293b;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1.5px solid #334155;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.05);
   border-radius: 6px;
-  width: 48px;
+  min-width: 36px;
   height: 38px;
+  padding: 0 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,46 +214,41 @@ body {
 }
 
 .digital-score-box:hover {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 
-    inset 0 2px 5px rgba(0, 0, 0, 0.95),
-    0 0 10px rgba(34, 211, 238, 0.4);
+  border-color: #64748b;
+  background: linear-gradient(180deg, #283548 0%, #162033 100%);
 }
 
 .digital-score-box:active {
   transform: scale(0.92);
 }
 
+/* Traditional white score value */
 .digital-score-value {
-  font-family: 'Digital-7', 'Digital-7 Mono', 'Orbitron', monospace;
-  font-size: 26px;
-  font-weight: 700;
-  color: #22d3ee;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f1f5f9;
   line-height: 1;
-  text-shadow: 
-    0 0 6px rgba(34, 211, 238, 0.9),
-    0 0 12px rgba(34, 211, 238, 0.4);
+  text-shadow: none;
   user-select: none;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
-/* Floating VS badge */
+/* VS badge — muted metallic pill */
 .scoreboard-vs-badge {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
-  border: 1.5px solid #475569;
-  color: #0f172a;
-  font-size: 8px;
-  font-weight: 900;
+  background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+  border: 1px solid #334155;
+  color: #f1f5f9;
+  font-size: 7px;
+  font-weight: 800;
   padding: 1px 6px;
   border-radius: 9999px;
   letter-spacing: 0.15em;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
 
@@ -309,7 +304,7 @@ body {
     font-size: 7px;
     padding: 1px 4px;
     margin: 0 2px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .scoreboard-score-local-container {
@@ -317,27 +312,57 @@ body {
     padding: 0;
   }
 
-  .scoreboard-colon-container {
-    grid-area: colon-sep;
-    padding: 0;
-    font-size: 16px;
-  }
-
   .scoreboard-score-visitante-container {
     grid-area: visitante-score;
     padding: 0;
   }
 
+  .scoreboard-colon-container {
+    grid-area: colon-sep;
+    padding: 0;
+    font-size: 18px;
+  }
+
   .digital-score-box {
-    width: 52px;
+    min-width: 36px;
     height: 34px;
     border-radius: 4px;
+    padding: 0 6px;
   }
 
   .digital-score-value {
-    font-size: 22px;
+    font-size: 20px;
     letter-spacing: 0.5px;
   }
+}
+
+/* ── Mobile Color Picker Bottom Sheet ─────────────────────────────────── */
+.color-picker-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.color-picker-mobile-sheet {
+  position: fixed;
+  z-index: 301;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface-700);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 20px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 

@@ -300,6 +300,180 @@ function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  /* ── Zoom and Pan state for the Pitch ── */
+  const [transformState, setTransformState] = useState({ zoom: 1, pan: { x: 0, y: 0 } })
+  const [isPanning, setIsPanning] = useState(false)
+  const activePointers = useRef<{ [id: number]: { x: number; y: number } }>({})
+  const lastDistance = useRef<number | null>(null)
+  const isDraggingPitch = useRef(false)
+  const lastPanPos = useRef({ x: 0, y: 0 })
+
+  const { zoom, pan } = transformState
+
+  const clampPan = useCallback((x: number, y: number, currentZoom: number) => {
+    const container = fieldContainerRef.current
+    if (!container) return { x: 0, y: 0 }
+    const w = container.clientWidth
+    const h = container.clientHeight
+    const maxPanX = Math.max(0, (w * (currentZoom - 1)) / 2)
+    const maxPanY = Math.max(0, (h * (currentZoom - 1)) / 2)
+    return {
+      x: Math.max(-maxPanX, Math.min(maxPanX, x)),
+      y: Math.max(-maxPanY, Math.min(maxPanY, y)),
+    }
+  }, [])
+
+  // Reset zoom and pan when screen mode (mobile vs desktop) changes
+  useEffect(() => {
+    setTransformState({ zoom: 1, pan: { x: 0, y: 0 } })
+  }, [isMobile])
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+
+    const target = e.target as HTMLElement
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('select') ||
+      target.closest('textarea') ||
+      target.closest('a')
+    ) {
+      return
+    }
+
+    activePointers.current[e.pointerId] = { x: e.clientX, y: e.clientY }
+    const pointerCount = Object.keys(activePointers.current).length
+
+    if (pointerCount === 1) {
+      isDraggingPitch.current = true
+      lastPanPos.current = { x: e.clientX, y: e.clientY }
+      setIsPanning(true)
+    } else if (pointerCount === 2) {
+      isDraggingPitch.current = false
+      setIsPanning(true)
+      const ids = Object.keys(activePointers.current).map(Number)
+      const p1 = activePointers.current[ids[0]]
+      const p2 = activePointers.current[ids[1]]
+      const dx = p1.x - p2.x
+      const dy = p1.y - p2.y
+      lastDistance.current = Math.sqrt(dx * dx + dy * dy)
+    }
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch { /* ignore */ }
+  }, [])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activePointers.current[e.pointerId]) return
+    activePointers.current[e.pointerId] = { x: e.clientX, y: e.clientY }
+
+    const pointerCount = Object.keys(activePointers.current).length
+
+    if (pointerCount === 1 && isDraggingPitch.current) {
+      const dx = e.clientX - lastPanPos.current.x
+      const dy = e.clientY - lastPanPos.current.y
+      lastPanPos.current = { x: e.clientX, y: e.clientY }
+
+      setTransformState((prev) => {
+        const nextX = prev.pan.x + dx
+        const nextY = prev.pan.y + dy
+        return {
+          zoom: prev.zoom,
+          pan: clampPan(nextX, nextY, prev.zoom),
+        }
+      })
+    } else if (pointerCount === 2 && lastDistance.current !== null) {
+      const ids = Object.keys(activePointers.current).map(Number)
+      const p1 = activePointers.current[ids[0]]
+      const p2 = activePointers.current[ids[1]]
+      const dx = p1.x - p2.x
+      const dy = p1.y - p2.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      if (lastDistance.current > 0) {
+        const factor = distance / lastDistance.current
+        lastDistance.current = distance
+
+        setTransformState((prev) => {
+          const nextZoom = Math.max(1, Math.min(4, prev.zoom * factor))
+          return {
+            zoom: nextZoom,
+            pan: clampPan(prev.pan.x, prev.pan.y, nextZoom),
+          }
+        })
+      }
+    }
+  }, [clampPan])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    delete activePointers.current[e.pointerId]
+    const pointerCount = Object.keys(activePointers.current).length
+
+    if (pointerCount === 0) {
+      isDraggingPitch.current = false
+      lastDistance.current = null
+      setIsPanning(false)
+    } else if (pointerCount === 1) {
+      const remainingId = Number(Object.keys(activePointers.current)[0])
+      const remainingPointer = activePointers.current[remainingId]
+      lastPanPos.current = { x: remainingPointer.x, y: remainingPointer.y }
+      isDraggingPitch.current = true
+      lastDistance.current = null
+    }
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch { /* ignore */ }
+  }, [])
+
+  const handlePointerCancel = handlePointerUp
+
+  const handleZoomIn = useCallback(() => {
+    setTransformState((prev) => {
+      const nextZoom = Math.min(4, prev.zoom + 0.5)
+      return {
+        zoom: nextZoom,
+        pan: clampPan(prev.pan.x, prev.pan.y, nextZoom),
+      }
+    })
+  }, [clampPan])
+
+  const handleZoomOut = useCallback(() => {
+    setTransformState((prev) => {
+      const nextZoom = Math.max(1, prev.zoom - 0.5)
+      return {
+        zoom: nextZoom,
+        pan: clampPan(prev.pan.x, prev.pan.y, nextZoom),
+      }
+    })
+  }, [clampPan])
+
+  const handleResetZoom = useCallback(() => {
+    setTransformState({ zoom: 1, pan: { x: 0, y: 0 } })
+  }, [])
+
+  /* ── Wheel zoom handler ────────────────────────────────────────────── */
+  useEffect(() => {
+    const el = fieldContainerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -0.15 : 0.15
+      setTransformState((prev) => {
+        const nextZoom = Math.max(1, Math.min(4, prev.zoom + delta))
+        return {
+          zoom: nextZoom,
+          pan: clampPan(prev.pan.x, prev.pan.y, nextZoom),
+        }
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [clampPan])
+
+
   /* Feedback toast state */
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(null)
@@ -1341,7 +1515,7 @@ function App() {
             title="Sumar (Click) / Restar (Click derecho)"
           >
             <span className="digital-score-value">
-              {golesLocal.toString().padStart(2, '0')}
+              {golesLocal.toString()}
             </span>
           </div>
         </div>
@@ -1351,7 +1525,7 @@ function App() {
 
         {/* Colon separator */}
         <div className="scoreboard-colon-container">
-          <span className="animate-pulse">:</span>
+          <span>:</span>
         </div>
 
         {/* Visitante Score */}
@@ -1370,7 +1544,7 @@ function App() {
             title="Sumar (Click) / Restar (Click derecho)"
           >
             <span className="digital-score-value">
-              {golesVisitante.toString().padStart(2, '0')}
+              {golesVisitante.toString()}
             </span>
           </div>
         </div>
@@ -1397,7 +1571,22 @@ function App() {
 
 
   const fieldContent = (
-    <Cancha ref={canchaRef} isVertical={isMobile}>
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      style={{
+        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+        transformOrigin: 'center center',
+        width: '100%',
+        height: '100%',
+        touchAction: 'none',
+        transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+      }}
+      className="w-full h-full"
+    >
+      <Cancha ref={canchaRef} isVertical={isMobile}>
       {arrows.map((arr) => {
         const mappedArrow = isMobile
           ? {
@@ -1503,7 +1692,8 @@ function App() {
           />
         )
       })}
-    </Cancha>
+      </Cancha>
+    </div>
   )
 
   /* ── Shared team-config popover content ─────────────────────────── */
@@ -1680,6 +1870,45 @@ function App() {
             }`}
           >
             {fieldContent}
+
+            {/* Zoom Controls */}
+            <div
+              className={`absolute z-30 flex flex-col gap-1.5 rounded-xl p-1
+                         bg-black/50 border border-white/10 backdrop-blur-sm shadow-lg select-none ${
+                           isFullscreen ? 'top-3 left-3' : 'top-2 left-2'
+                         }`}
+            >
+              <button
+                onClick={handleZoomIn}
+                className="flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-150 cursor-pointer active:scale-90"
+                style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px' }}
+                title="Acercar (Zoom In)"
+              >
+                <Plus size={isFullscreen ? 16 : 14} strokeWidth={2.5} />
+              </button>
+              
+              {zoom > 1 && (
+                <button
+                  onClick={handleResetZoom}
+                  className="flex items-center justify-center rounded-lg bg-accent-500/30 hover:bg-accent-500/50 text-accent-300 font-bold transition-all duration-150 cursor-pointer active:scale-90"
+                  style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px', fontSize: isFullscreen ? '10px' : '8px' }}
+                  title="Restaurar Zoom (100%)"
+                >
+                  1x
+                </button>
+              )}
+
+              <button
+                onClick={handleZoomOut}
+                className="flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-150 cursor-pointer active:scale-90"
+                style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px' }}
+                title="Alejar (Zoom Out)"
+                disabled={zoom <= 1}
+              >
+                <Minus size={isFullscreen ? 16 : 14} strokeWidth={2.5} />
+              </button>
+            </div>
+
             <button
               onClick={toggleFullscreen}
               className={`absolute z-30 flex items-center justify-center rounded-lg
@@ -1716,6 +1945,20 @@ function App() {
           onLoadSlot={cargarDesdeSlot}
           onDeleteSlot={borrarSlot}
         />
+        {activeColorPicker && (
+          <ColorPickerPortal
+            color={activeColorPicker.team === 'local' ? colorLocal : colorVisitante}
+            onChange={(c) => {
+              if (activeColorPicker.team === 'local') {
+                setColorLocal(c)
+              } else {
+                setColorVisitante(c)
+              }
+            }}
+            rect={activeColorPicker.rect}
+            onClose={() => setActiveColorPicker(null)}
+          />
+        )}
         <div
           className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50
                       px-4 py-2 rounded-xl text-sm font-medium
@@ -1790,6 +2033,47 @@ function App() {
             <div className={isFullscreen ? 'w-full h-full' : 'contents'}>
               {fieldContent}
             </div>
+
+            {/* Zoom Controls */}
+            <div
+              className={`absolute z-30 flex flex-col gap-1.5 rounded-xl p-1
+                         bg-black/50 border border-white/10 backdrop-blur-sm shadow-lg select-none ${
+                           isFullscreen
+                             ? 'bottom-4 left-4'
+                             : 'bottom-2.5 left-2.5'
+                         }`}
+            >
+              <button
+                onClick={handleZoomIn}
+                className="flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-150 cursor-pointer active:scale-90"
+                style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px' }}
+                title="Acercar (Zoom In)"
+              >
+                <Plus size={isFullscreen ? 16 : 14} strokeWidth={2.5} />
+              </button>
+              
+              {zoom > 1 && (
+                <button
+                  onClick={handleResetZoom}
+                  className="flex items-center justify-center rounded-lg bg-accent-500/30 hover:bg-accent-500/50 text-accent-300 font-bold transition-all duration-150 cursor-pointer active:scale-90"
+                  style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px', fontSize: isFullscreen ? '10px' : '8px' }}
+                  title="Restaurar Zoom (100%)"
+                >
+                  1x
+                </button>
+              )}
+
+              <button
+                onClick={handleZoomOut}
+                className="flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-150 cursor-pointer active:scale-90"
+                style={{ width: isFullscreen ? '32px' : '26px', height: isFullscreen ? '32px' : '26px' }}
+                title="Alejar (Zoom Out)"
+                disabled={zoom <= 1}
+              >
+                <Minus size={isFullscreen ? 16 : 14} strokeWidth={2.5} />
+              </button>
+            </div>
+
             <button
               onClick={toggleFullscreen}
               className={`absolute z-30 flex items-center justify-center rounded-lg
@@ -1884,12 +2168,79 @@ function ColorPickerPortal({
     '#0f172a', // Black
   ];
 
-  // Position the popover to the left of the trigger button
+  const isMobileViewport = window.innerWidth <= 768;
+
+  if (isMobileViewport) {
+    // Mobile: render as a bottom sheet
+    return createPortal(
+      <>
+        {/* Backdrop */}
+        <div
+          className="color-picker-mobile-backdrop"
+          onClick={onClose}
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+
+        {/* Bottom Sheet */}
+        <div
+          className="color-picker-mobile-sheet"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center mb-3">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+
+          <div className="text-xs font-bold uppercase tracking-wider text-text-secondary px-1 border-b border-white/5 pb-2 mb-3">
+            Color de camiseta
+          </div>
+
+          {/* Color grid — bigger touch targets on mobile */}
+          <div className="grid grid-cols-6 gap-2.5 mb-4">
+            {colors.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  onChange(c);
+                  onClose();
+                }}
+                className="w-11 h-11 rounded-xl border-2 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: c,
+                  borderColor: color.toLowerCase() === c.toLowerCase() ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                  boxShadow: color.toLowerCase() === c.toLowerCase() ? '0 0 12px rgba(255,255,255,0.35)' : 'none',
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Custom color picker */}
+          <div className="h-px bg-white/5 mb-3" />
+
+          <label className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-surface-800/80 hover:bg-surface-600/80 border border-white/5 transition-colors cursor-pointer text-sm font-semibold text-text-primary">
+            <span>Personalizado...</span>
+            <div className="w-8 h-8 rounded-lg border border-white/10 relative overflow-hidden" style={{ backgroundColor: color }}>
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => onChange(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full scale-150"
+              />
+            </div>
+          </label>
+        </div>
+      </>,
+      document.body
+    );
+  }
+
+  // Desktop: positioned popover
   const popoverWidth = 200;
-  
-  // Calculate top & left based on the button position
   const left = rect.left - popoverWidth - 10;
-  const top = rect.top + rect.height / 2 - 90; // center vertically
+  const top = rect.top + rect.height / 2 - 90;
+
+  const clampedLeft = Math.max(10, Math.min(window.innerWidth - popoverWidth - 10, left));
+  const clampedTop = Math.max(10, Math.min(window.innerHeight - 220, top));
 
   return createPortal(
     <>
@@ -1906,8 +2257,8 @@ function ColorPickerPortal({
         onPointerDown={(e) => e.stopPropagation()}
         style={{
           width: `${popoverWidth}px`,
-          left: `${Math.max(10, left)}px`,
-          top: `${Math.max(10, top)}px`,
+          left: `${clampedLeft}px`,
+          top: `${clampedTop}px`,
         }}
       >
         <div className="text-[10px] font-bold uppercase tracking-wider text-text-secondary px-1 border-b border-white/5 pb-1.5">
