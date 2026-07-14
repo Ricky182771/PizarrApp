@@ -1352,86 +1352,105 @@ function App() {
     const safeName = tacticName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') || 'pizarra-tactica'
     const fileName = `${safeName}-${Date.now()}.png`
 
-    // Try sharing via Web Share API if on mobile and supported
-    if (isMobile && navigator.share && navigator.canShare) {
+    if (isMobile) {
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          fallbackImageDownload(canvas, fileName)
+          desktopDownload(canvas, fileName)
           return
         }
-        const file = new File([blob], fileName, { type: 'image/png' })
-        if (navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: tacticName || 'Táctica',
-              text: 'Compartir mi táctica creada en PizarrApp'
-            })
-            showToast('✓ Táctica compartida')
-            return
-          } catch (err) {
-            console.error('Error sharing image', err)
+
+        // 1. Try Web Share API — lets user "Save Image" to camera roll
+        if (navigator.share && navigator.canShare) {
+          const file = new File([blob], fileName, { type: 'image/png' })
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: tacticName || 'Táctica',
+              })
+              showToast('✓ Imagen guardada')
+              return
+            } catch (err: unknown) {
+              // User cancelled share sheet — don't fall through
+              if (err instanceof DOMException && err.name === 'AbortError') {
+                return
+              }
+              console.warn('Share failed, trying download fallback', err)
+            }
           }
         }
-        fallbackImageDownload(canvas, fileName)
+
+        // 2. Fallback: trigger download via Blob URL (saves to Downloads/Gallery)
+        try {
+          const blobUrl = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = blobUrl
+          a.download = fileName
+          a.style.display = 'none'
+          document.body.appendChild(a)
+          a.click()
+          // Clean up after a short delay
+          setTimeout(() => {
+            document.body.removeChild(a)
+            URL.revokeObjectURL(blobUrl)
+          }, 1000)
+          showToast('✓ Imagen descargada')
+        } catch {
+          // 3. Last resort: open image in new tab for long-press save
+          const dataUrl = canvas.toDataURL('image/png')
+          const newTab = window.open()
+          if (newTab) {
+            newTab.document.write(`
+              <html>
+                <head>
+                  <title>PizarrApp - Guardar imagen</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <style>
+                    body {
+                      margin: 0;
+                      background: #111827;
+                      color: #f3f4f6;
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      font-family: system-ui, sans-serif;
+                      padding: 16px;
+                      min-height: 100vh;
+                      box-sizing: border-box;
+                    }
+                    img {
+                      max-width: 100%;
+                      max-height: 75vh;
+                      border-radius: 12px;
+                      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+                      margin-bottom: 20px;
+                    }
+                    p {
+                      font-size: 14px;
+                      text-align: center;
+                      color: #9ca3af;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <img src="${dataUrl}" alt="Táctica" />
+                  <p>Mantén presionada la imagen para guardarla en tu galería.</p>
+                </body>
+              </html>
+            `)
+            newTab.document.close()
+            showToast('✓ Táctica abierta para guardar')
+          }
+        }
       }, 'image/png')
     } else {
-      fallbackImageDownload(canvas, fileName)
+      desktopDownload(canvas, fileName)
     }
   }
 
-  const fallbackImageDownload = (canvas: HTMLCanvasElement, fileName: string) => {
+  const desktopDownload = (canvas: HTMLCanvasElement, fileName: string) => {
     const dataUrl = canvas.toDataURL('image/png')
-    
-    // On iOS Safari / WebViews, opening in new tab is much more reliable
-    if (isMobile) {
-      const newTab = window.open()
-      if (newTab) {
-        newTab.document.write(`
-          <html>
-            <head>
-              <title>PizarrApp - Exportar</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body {
-                  margin: 0;
-                  background: #111827;
-                  color: #f3f4f6;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  font-family: system-ui, sans-serif;
-                  padding: 16px;
-                  min-height: 100vh;
-                  box-sizing: border-box;
-                }
-                img {
-                  max-width: 100%;
-                  max-height: 75vh;
-                  border-radius: 12px;
-                  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
-                  margin-bottom: 20px;
-                }
-                p {
-                  font-size: 14px;
-                  text-align: center;
-                  color: #9ca3af;
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${dataUrl}" alt="Táctica" />
-              <p>Mantén presionada la imagen para guardarla o compartirla en tu móvil.</p>
-            </body>
-          </html>
-        `)
-        newTab.document.close()
-        showToast('✓ Táctica abierta para guardar')
-        return
-      }
-    }
-
     const link = document.createElement('a')
     link.download = fileName
     link.href = dataUrl
