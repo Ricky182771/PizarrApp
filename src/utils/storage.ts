@@ -4,11 +4,21 @@ import { isValidTacticaGuardada, type TacticaGuardada } from '../types';
 
 export const LS_KEY = 'pizarra-tactica';
 
+/**
+ * Named manual save slots. The first three keys are unchanged from the
+ * original 3-slot scheme, so existing saves migrate automatically — extending
+ * the list only adds new empty slots (4-6).
+ */
 export const LS_SLOT_KEYS = [
   'pizarra-tactica-slot-1',
   'pizarra-tactica-slot-2',
   'pizarra-tactica-slot-3',
+  'pizarra-tactica-slot-4',
+  'pizarra-tactica-slot-5',
+  'pizarra-tactica-slot-6',
 ] as const;
+
+export const SLOT_COUNT = LS_SLOT_KEYS.length;
 
 function safeParse(raw: string | null): TacticaGuardada | null {
   if (!raw) return null;
@@ -18,6 +28,18 @@ function safeParse(raw: string | null): TacticaGuardada | null {
   } catch {
     return null;
   }
+}
+
+/* ── File export / import (whole-tactic .json) ────────────────────────── */
+
+/** Derive a filesystem-safe base name from the tactic name. */
+export function safeFileName(tacticName: string | undefined): string {
+  return (tacticName ?? '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') || 'pizarra-tactica';
+}
+
+/** Parse and validate an imported JSON string; returns null when invalid. */
+export function parseTacticFile(text: string): TacticaGuardada | null {
+  return safeParse(text);
 }
 
 export function loadFromLS(): TacticaGuardada | null {

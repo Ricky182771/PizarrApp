@@ -20,6 +20,8 @@ import {
   Shapes,
   Circle,
   Film,
+  FileJson,
+  Upload,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -43,10 +45,12 @@ interface FloatingMenuProps {
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
 
-  slotNames: [string, string, string];
+  slotNames: string[];
   onSaveSlot: (slotIndex: number) => void;
   onLoadSlot: (slotIndex: number) => void;
   onDeleteSlot: (slotIndex: number) => void;
+  onExportTactic: () => void;
+  onImportTactic: () => void;
 }
 
 export default function FloatingMenu({
@@ -68,6 +72,8 @@ export default function FloatingMenu({
   onSaveSlot,
   onLoadSlot,
   onDeleteSlot,
+  onExportTactic,
+  onImportTactic,
 }: FloatingMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExtrasOpen, setIsExtrasOpen] = useState(false);
@@ -511,6 +517,30 @@ export default function FloatingMenu({
                           >
                             <FileText size={14} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
                             <span className="text-xs font-semibold text-text-primary">PDF A4</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <button
+                            onClick={() => {
+                              closeAll();
+                              onExportTactic();
+                            }}
+                            className="flex items-center justify-center gap-2 py-2 px-2.5 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border hover:border-white/10 transition-colors group cursor-pointer"
+                            title="Exportar la táctica como archivo .json"
+                          >
+                            <FileJson size={14} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
+                            <span className="text-xs font-semibold text-text-primary">Exportar</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              closeAll();
+                              onImportTactic();
+                            }}
+                            className="flex items-center justify-center gap-2 py-2 px-2.5 rounded-lg bg-surface-800 hover:bg-surface-600 border border-border hover:border-white/10 transition-colors group cursor-pointer"
+                            title="Importar una táctica desde un archivo .json"
+                          >
+                            <Upload size={14} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
+                            <span className="text-xs font-semibold text-text-primary">Importar</span>
                           </button>
                         </div>
                       </div>

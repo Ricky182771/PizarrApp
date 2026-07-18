@@ -22,6 +22,8 @@ import {
   Download,
   Circle,
   Film,
+  FileJson,
+  Upload,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -40,10 +42,12 @@ interface DesktopSidebarProps {
   animationContent: React.ReactNode;
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
-  slotNames: [string, string, string];
+  slotNames: string[];
   onSaveSlot: (slotIndex: number) => void;
   onLoadSlot: (slotIndex: number) => void;
   onDeleteSlot: (slotIndex: number) => void;
+  onExportTactic: () => void;
+  onImportTactic: () => void;
 }
 
 /* ── Collapsible section wrapper ─────────────────────────────────────── */
@@ -109,6 +113,8 @@ export default function DesktopSidebar({
   onSaveSlot,
   onLoadSlot,
   onDeleteSlot,
+  onExportTactic,
+  onImportTactic,
 }: DesktopSidebarProps) {
   const [extrasOpen, setExtrasOpen] = useState(true);
   const [teamsOpen, setTeamsOpen] = useState(true);
@@ -292,6 +298,26 @@ export default function DesktopSidebar({
             >
               <FileText size={15} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
               <span className="text-[11px] font-semibold text-text-primary">PDF A4</span>
+            </button>
+            <button
+              onClick={onExportTactic}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg
+                         bg-surface-700/40 hover:bg-surface-700 border border-border hover:border-border-hover
+                         transition-all cursor-pointer active:scale-95 group"
+              title="Exportar la táctica como archivo .json"
+            >
+              <FileJson size={15} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
+              <span className="text-[11px] font-semibold text-text-primary">Exportar</span>
+            </button>
+            <button
+              onClick={onImportTactic}
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg
+                         bg-surface-700/40 hover:bg-surface-700 border border-border hover:border-border-hover
+                         transition-all cursor-pointer active:scale-95 group"
+              title="Importar una táctica desde un archivo .json"
+            >
+              <Upload size={15} className="text-text-secondary group-hover:text-accent-400 transition-colors" />
+              <span className="text-[11px] font-semibold text-text-primary">Importar</span>
             </button>
           </div>
         </Section>

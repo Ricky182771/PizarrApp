@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Save, RotateCcw, Trash2 } from 'lucide-react';
 
 export interface TacticSlotsProps {
-  slotNames: [string, string, string];
+  slotNames: string[];
   onSaveSlot: (slotIndex: number) => void;
   onLoadSlot: (slotIndex: number) => void;
   onDeleteSlot: (slotIndex: number) => void;
@@ -11,7 +11,7 @@ export interface TacticSlotsProps {
 }
 
 /**
- * TacticSlots — the three named save slots.
+ * TacticSlots — the named save slots (count driven by `slotNames`).
  * Shared between the desktop sidebar and the mobile floating menu.
  */
 function TacticSlots({ slotNames, onSaveSlot, onLoadSlot, onDeleteSlot, compact = false }: TacticSlotsProps) {
@@ -20,9 +20,8 @@ function TacticSlots({ slotNames, onSaveSlot, onLoadSlot, onDeleteSlot, compact 
   const iconSize = compact ? 12 : 13;
 
   return (
-    <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
-      {([0, 1, 2] as const).map((slotIdx) => {
-        const name = slotNames[slotIdx];
+    <div className={`${compact ? 'space-y-1.5' : 'space-y-2'} max-h-[220px] overflow-y-auto scrollbar-thin`}>
+      {slotNames.map((name, slotIdx) => {
         const isEmpty = !name;
         return (
           <div key={`slot-${slotIdx}`} className="flex items-center gap-1.5">

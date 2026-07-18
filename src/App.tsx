@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react'
 import { Pencil } from 'lucide-react'
 import Cancha from './components/Cancha'
 import FichaJugador from './components/FichaJugador'
@@ -33,6 +33,9 @@ import {
   deleteSlot,
   getSlotName,
   deepClone,
+  SLOT_COUNT,
+  safeFileName,
+  parseTacticFile,
 } from './utils/storage'
 import { compressToUrlSafe, decompressFromUrlSafe } from './utils/share'
 import { exportTacticAsImage, exportTacticAsPdf } from './utils/exportTactic'
@@ -682,15 +685,13 @@ function App() {
     showToast('🗑 Animación borrada')
   }, [showToast])
 
-  /* ── Tactic Slots (save/load 3 tactics) ───────────────────────────── */
-  const [slotNames, setSlotNames] = useState<[string, string, string]>(() => [
-    getSlotName(0),
-    getSlotName(1),
-    getSlotName(2),
-  ])
+  /* ── Tactic Slots (save/load named tactics) ───────────────────────── */
+  const [slotNames, setSlotNames] = useState<string[]>(() =>
+    Array.from({ length: SLOT_COUNT }, (_, i) => getSlotName(i)),
+  )
 
   const refreshSlotNames = useCallback(() => {
-    setSlotNames([getSlotName(0), getSlotName(1), getSlotName(2)])
+    setSlotNames(Array.from({ length: SLOT_COUNT }, (_, i) => getSlotName(i)))
   }, [])
 
   const guardarEnSlot = useCallback((slotIndex: number) => {
@@ -727,6 +728,55 @@ function App() {
   const exportWhiteboardAsPdf = useCallback(() => {
     exportTacticAsPdf(getCurrentTacticData(), { portrait: isMobile, notify: showToast })
   }, [getCurrentTacticData, isMobile, showToast])
+
+  /* ── Export / import a tactic as a .json file ─────────────────────── */
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const exportTacticFile = useCallback(() => {
+    const json = JSON.stringify(getCurrentTacticData(), null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${safeFileName(tacticName)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('✓ Táctica exportada')
+  }, [getCurrentTacticData, tacticName, showToast])
+
+  const importTacticFile = useCallback(() => fileInputRef.current?.click(), [])
+
+  const handleImportFileChange = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      e.target.value = '' // allow re-importing the same file
+      if (!file) return
+      try {
+        const parsed = parseTacticFile(await file.text())
+        if (!parsed) {
+          showToast('⚠ Archivo de táctica inválido')
+          return
+        }
+        applyTactic(parsed)
+        pendingHistoryReset.current = true
+        showToast('✓ Táctica importada')
+      } catch {
+        showToast('⚠ No se pudo leer el archivo')
+      }
+    },
+    [applyTactic, showToast],
+  )
+
+  const hiddenFileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="application/json,.json"
+      onChange={handleImportFileChange}
+      className="hidden"
+      aria-hidden="true"
+    />
+  )
 
   /* ── Derived rendering data ───────────────────────────────────────── */
   const snapStep = snapEnabled ? SNAP_STEP : undefined
@@ -967,7 +1017,10 @@ function App() {
           onSaveSlot={guardarEnSlot}
           onLoadSlot={cargarDesdeSlot}
           onDeleteSlot={borrarSlot}
+          onExportTactic={exportTacticFile}
+          onImportTactic={importTacticFile}
         />
+        {hiddenFileInput}
         {colorPickerPortal}
         <div
           role="status"
@@ -1071,8 +1124,11 @@ function App() {
         onSaveSlot={guardarEnSlot}
         onLoadSlot={cargarDesdeSlot}
         onDeleteSlot={borrarSlot}
+        onExportTactic={exportTacticFile}
+        onImportTactic={importTacticFile}
       />
 
+      {hiddenFileInput}
       {colorPickerPortal}
     </div>
   )
