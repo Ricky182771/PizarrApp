@@ -13,6 +13,7 @@ import TeamConfig, { type TeamSide } from './components/TeamConfig'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useToast } from './hooks/useToast'
 import { useZoomPan } from './hooks/useZoomPan'
+import { useHistory } from './hooks/useHistory'
 import {
   defaultTeam,
   changeFormation,
@@ -107,6 +108,17 @@ function App() {
   const { toast, showToast } = useToast()
   const { zoom, pan, isPanning, zoomIn, zoomOut, resetZoom, pointerHandlers } =
     useZoomPan(fieldContainerRef)
+  const {
+    pushSnapshot,
+    undo: undoHistory,
+    redo: redoHistory,
+    reset: resetHistory,
+    canUndo,
+    canRedo,
+  } = useHistory(initialData)
+  // When true, the next debounced history tick resets (rather than extends)
+  // the stack — used after loading a different tactic from a slot / link.
+  const pendingHistoryReset = useRef(false)
 
   useEffect(() => {
     document.title = `${tacticName.slice(0, 100)} - PizarrApp Táctica`
@@ -174,6 +186,25 @@ function App() {
     return () => clearTimeout(t)
   }, [getCurrentTacticData])
 
+  /* ── Undo/redo history (debounced snapshot after each discrete edit) ──
+   * Board mutations only touch App state at the end of an action (drag end,
+   * add/remove, formation change…), never per animation frame, so a single
+   * debounced snapshot per settled state is exactly one entry per action.
+   * Restores are no-ops here because the restored state equals the pointer.
+   */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const snap = getCurrentTacticData()
+      if (pendingHistoryReset.current) {
+        pendingHistoryReset.current = false
+        resetHistory(snap)
+      } else {
+        pushSnapshot(snap)
+      }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [getCurrentTacticData, pushSnapshot, resetHistory])
+
   /* ── Apply a full tactic to the board (shared by URL hash & slots) ── */
   const applyTactic = useCallback((saved: TacticaGuardada) => {
     setLocal(deepClone(saved.local))
@@ -192,6 +223,49 @@ function App() {
     if (saved.marcadorY !== undefined) setMarcadorY(saved.marcadorY)
   }, [])
 
+  /* ── Undo / Redo ──────────────────────────────────────────────────── */
+  const handleUndo = useCallback(() => {
+    const snap = undoHistory()
+    if (snap) {
+      applyTactic(snap)
+      showToast('↶ Deshecho')
+    }
+  }, [undoHistory, applyTactic, showToast])
+
+  const handleRedo = useCallback(() => {
+    const snap = redoHistory()
+    if (snap) {
+      applyTactic(snap)
+      showToast('↷ Rehecho')
+    }
+  }, [redoHistory, applyTactic, showToast])
+
+  // Keyboard shortcuts: Ctrl/Cmd+Z (undo), Ctrl/Cmd+Shift+Z or Ctrl+Y (redo)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+      const key = e.key.toLowerCase()
+      const isUndo = key === 'z' && !e.shiftKey
+      const isRedo = (key === 'z' && e.shiftKey) || key === 'y'
+      if (!isUndo && !isRedo) return
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.closest('input') ||
+          target.closest('textarea') ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      e.preventDefault()
+      if (isRedo) handleRedo()
+      else handleUndo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [handleUndo, handleRedo])
+
   /* ── Load tactic from shareable URL hash on mount ─────────────────── */
   useEffect(() => {
     const loadFromHash = async () => {
@@ -204,6 +278,7 @@ function App() {
         const parsed: unknown = JSON.parse(json)
         if (!isValidTacticaGuardada(parsed)) return
         applyTactic(parsed)
+        pendingHistoryReset.current = true
         window.history.replaceState(null, '', window.location.pathname)
         showToast('✓ Táctica cargada desde enlace')
       } catch { /* ignore malformed data */ }
@@ -514,6 +589,7 @@ function App() {
       return
     }
     applyTactic(saved)
+    pendingHistoryReset.current = true
     showToast(`✓ Táctica ${slotIndex + 1} cargada`)
   }, [applyTactic, showToast])
 
@@ -665,6 +741,10 @@ function App() {
       onToggleFullscreen={toggleFullscreen}
       snapEnabled={snapEnabled}
       onToggleSnap={toggleSnap}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
       compact={isMobile}
       placement={isMobile ? 'top' : 'bottom'}
     />

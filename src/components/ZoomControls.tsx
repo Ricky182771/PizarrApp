@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Plus, Minus, Maximize, Minimize, Magnet } from 'lucide-react';
+import { Plus, Minus, Maximize, Minimize, Magnet, Undo2, Redo2 } from 'lucide-react';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -10,6 +10,10 @@ interface ZoomControlsProps {
   onToggleFullscreen: () => void;
   snapEnabled: boolean;
   onToggleSnap: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   /** Compact sizing for the small mobile pitch */
   compact?: boolean;
   /** Where to pin the cluster inside the pitch container */
@@ -30,6 +34,10 @@ function ZoomControls({
   onToggleFullscreen,
   snapEnabled,
   onToggleSnap,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   compact = false,
   placement,
 }: ZoomControlsProps) {
@@ -104,6 +112,30 @@ function ZoomControls({
           aria-pressed={snapEnabled}
         >
           <Magnet size={iconSize} strokeWidth={2.5} />
+        </button>
+
+        <div className="h-px bg-white/10 mx-1" />
+
+        <button
+          onClick={onUndo}
+          className={btnNeutral}
+          style={{ width: size, height: size }}
+          disabled={!canUndo}
+          title="Deshacer (Ctrl+Z)"
+          aria-label="Deshacer"
+        >
+          <Undo2 size={iconSize} strokeWidth={2.5} />
+        </button>
+
+        <button
+          onClick={onRedo}
+          className={btnNeutral}
+          style={{ width: size, height: size }}
+          disabled={!canRedo}
+          title="Rehacer (Ctrl+Shift+Z)"
+          aria-label="Rehacer"
+        >
+          <Redo2 size={iconSize} strokeWidth={2.5} />
         </button>
       </div>
 
