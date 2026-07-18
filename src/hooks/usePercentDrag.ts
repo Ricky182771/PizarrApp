@@ -13,6 +13,7 @@ export function usePercentDrag({
   onEnd,
   onDragStart,
   dragThreshold = 8,
+  snapStep,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   onMove?: (x: number, y: number) => void;
@@ -21,6 +22,8 @@ export function usePercentDrag({
   onDragStart?: () => void;
   /** Minimum px distance pointer must move before drag begins (default: 8) */
   dragThreshold?: number;
+  /** Optional grid step in % — when set, positions snap to the grid */
+  snapStep?: number;
 }) {
   const dragging = useRef(false);
   /** Whether the drag threshold has been exceeded for the current gesture */
@@ -36,6 +39,10 @@ export function usePercentDrag({
   const activeUpRef = useRef<((e: PointerEvent) => void) | null>(null);
   const activeTouchMoveRef = useRef<((e: TouchEvent) => void) | null>(null);
 
+  // requestAnimationFrame batching: at most one onMove per frame
+  const rafId = useRef<number | null>(null);
+  const pendingPos = useRef<[number, number] | null>(null);
+
   const toPercent = useCallback(
     (clientX: number, clientY: number): [number, number] => {
       const c = containerRef.current;
@@ -43,11 +50,15 @@ export function usePercentDrag({
       const r = c.getBoundingClientRect();
       const width = r.width || 1;
       const height = r.height || 1;
-      const x = Math.max(0, Math.min(100, ((clientX - r.left - offsetRef.current.dx) / width) * 100));
-      const y = Math.max(0, Math.min(100, ((clientY - r.top - offsetRef.current.dy) / height) * 100));
+      let x = Math.max(0, Math.min(100, ((clientX - r.left - offsetRef.current.dx) / width) * 100));
+      let y = Math.max(0, Math.min(100, ((clientY - r.top - offsetRef.current.dy) / height) * 100));
+      if (snapStep && snapStep > 0) {
+        x = Math.round(x / snapStep) * snapStep;
+        y = Math.round(y / snapStep) * snapStep;
+      }
       return [Math.round(x * 100) / 100, Math.round(y * 100) / 100];
     },
-    [containerRef],
+    [containerRef, snapStep],
   );
 
   // Clean up pointer listeners on unmount to prevent memory leaks
@@ -61,6 +72,9 @@ export function usePercentDrag({
       }
       if (activeTouchMoveRef.current) {
         document.removeEventListener('touchmove', activeTouchMoveRef.current);
+      }
+      if (rafId.current !== null) {
+        cancelAnimationFrame(rafId.current);
       }
     };
   }, []);
@@ -111,13 +125,26 @@ export function usePercentDrag({
           onDragStart?.();
         }
 
-        const [px, py] = toPercent(ev.clientX, ev.clientY);
-        onMove?.(px, py);
+        // Batch position updates to one per animation frame for smooth,
+        // cheap dragging even with many elements on the board.
+        pendingPos.current = toPercent(ev.clientX, ev.clientY);
+        if (rafId.current === null) {
+          rafId.current = requestAnimationFrame(() => {
+            rafId.current = null;
+            if (pendingPos.current && dragging.current) {
+              onMove?.(pendingPos.current[0], pendingPos.current[1]);
+            }
+          });
+        }
       };
 
       const handlePointerUp = (ev: PointerEvent) => {
         if (!dragging.current) return;
         dragging.current = false;
+        if (rafId.current !== null) {
+          cancelAnimationFrame(rafId.current);
+          rafId.current = null;
+        }
         // Only fire onEnd if a real drag occurred
         if (thresholdExceeded.current) {
           const [px, py] = toPercent(ev.clientX, ev.clientY);

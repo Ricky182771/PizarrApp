@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { usePercentDrag } from '../hooks/usePercentDrag';
 import type { FieldElement } from '../types';
 import { RotateCw } from 'lucide-react';
@@ -11,6 +11,8 @@ interface DraggableElementProps {
   onTextChange?: (id: string, text: string) => void;
   onScaleChange?: (id: string, scale: number) => void;
   onRotationChange?: (id: string, rotation: number) => void;
+  /** Optional grid step in % — when set, drag positions snap to the grid */
+  snapStep?: number;
 }
 
 /* ── Visual renderers per type ────────────────────────────────────────── */
@@ -141,7 +143,7 @@ function DummyVisual() {
 
 /* ── Main component ───────────────────────────────────────────────────── */
 
-export default function DraggableElement({
+function DraggableElement({
   element,
   constraintsRef,
   onDragEnd,
@@ -149,6 +151,7 @@ export default function DraggableElement({
   onTextChange,
   onScaleChange,
   onRotationChange,
+  snapStep,
 }: DraggableElementProps) {
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -160,6 +163,7 @@ export default function DraggableElement({
 
   const { onPointerDown } = usePercentDrag({
     containerRef: constraintsRef,
+    snapStep,
     onMove: (nx, ny) => {
       if (isPinching.current) return; // suppress position updates while pinching
       setIsDragging(true);
@@ -189,7 +193,7 @@ export default function DraggableElement({
       moveEvent.stopPropagation();
       const currentAngleRad = Math.atan2(moveEvent.clientY - cy, moveEvent.clientX - cx);
       const diffRad = currentAngleRad - initialAngleRad;
-      let diffDeg = diffRad * (180 / Math.PI);
+      const diffDeg = diffRad * (180 / Math.PI);
       
       let newRotation = (initialRotation + diffDeg) % 360;
       if (newRotation < 0) newRotation += 360;
@@ -357,3 +361,5 @@ export default function DraggableElement({
     </div>
   );
 }
+
+export default memo(DraggableElement);

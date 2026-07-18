@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import type { ArrowItem } from '../types';
 
 interface InteractiveArrowProps {
@@ -9,7 +9,7 @@ interface InteractiveArrowProps {
   onScaleChange?: (id: string, scale: number) => void;
 }
 
-export default function InteractiveArrow({
+function InteractiveArrow({
   arrow,
   constraintsRef,
   onUpdate,
@@ -309,6 +309,7 @@ export default function InteractiveArrow({
             transform: 'translate(-50%, -50%)',
           }}
           title="Eliminar línea"
+          aria-label="Eliminar línea"
         >
           ×
         </button>
@@ -316,3 +317,5 @@ export default function InteractiveArrow({
     </div>
   );
 }
+
+export default memo(InteractiveArrow);

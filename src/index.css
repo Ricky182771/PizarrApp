@@ -70,6 +70,25 @@ body {
 }
 
 /*
+ * ── Accessibility ───────────────────────────────────────────────────────
+ * Visible focus ring for keyboard navigation only (not on pointer clicks).
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 2px;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
  * ── Mobile Layout ───────────────────────────────────────────────────────
  * On screens ≤ 768px the layout flips to a mobile-optimised flow:
  *   • The pitch occupies ~80 % of the viewport height in portrait aspect
