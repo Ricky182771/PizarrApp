@@ -35,6 +35,11 @@ export interface Jugador {
   nombre: string;
   x: number;
   y: number;
+  /**
+   * Whether the player is on the pitch. Absent = on the pitch (keeps tactics
+   * saved before the bench feature valid). `false` means benched.
+   */
+  enCancha?: boolean;
 }
 
 /* ── Play animation (key-frame snapshots of positions) ─────────────────── */
@@ -91,7 +96,8 @@ export function isValidJugador(j: unknown): j is Jugador {
     typeof o.numero === 'number' && Number.isFinite(o.numero) &&
     typeof o.nombre === 'string' && o.nombre.length <= 50 &&
     typeof o.x === 'number' && Number.isFinite(o.x) && o.x >= 0 && o.x <= 100 &&
-    typeof o.y === 'number' && Number.isFinite(o.y) && o.y >= 0 && o.y <= 100
+    typeof o.y === 'number' && Number.isFinite(o.y) && o.y >= 0 && o.y <= 100 &&
+    (o.enCancha === undefined || typeof o.enCancha === 'boolean')
   );
 }
 

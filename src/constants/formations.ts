@@ -112,53 +112,71 @@ export function buildFormationLayout(
   return mirrored.slice(0, count);
 }
 
+/** A player counts as on the pitch unless explicitly benched. */
+export const isOnField = (j: Jugador): boolean => j.enCancha !== false;
+
 /**
- * Change a team's formation to `targetCount` players.
- * Existing players keep their identity (name + number); when the squad
- * grows, missing players are taken from the default plantilla (or generated).
- * Every player is redistributed onto the logical grid — no overlaps.
+ * Change how many players a team fields to `targetCount` (7/9/11), keeping the
+ * bench intact. Shrinking sends the excess on-field players to the bench;
+ * growing promotes benched players first, then pulls from the default squad.
+ * The resulting on-field players are laid out on the grid.
  */
 export function changeFormation(
   currentPlayers: Jugador[],
   targetCount: number,
   side: 'local' | 'visitante',
 ): Jugador[] {
-  const layout = buildFormationLayout(targetCount, side);
   const plantilla = side === 'local' ? plantillaLocal : plantillaVisitante;
+  const onField = currentPlayers.filter(isOnField);
+  const bench = currentPlayers.filter((j) => !isOnField(j));
 
-  const result: Jugador[] = [];
-  const usedNumbers = new Set(currentPlayers.slice(0, targetCount).map((j) => j.numero));
-
-  for (let i = 0; i < targetCount; i++) {
-    const existing = currentPlayers[i];
-    if (existing) {
-      result.push({ ...existing, x: layout[i].x, y: layout[i].y });
-      continue;
+  let newOnField: Jugador[];
+  if (onField.length >= targetCount) {
+    newOnField = onField.slice(0, targetCount);
+    // Demote the excess to the bench (most recently added first out)
+    bench.push(...onField.slice(targetCount).map((j) => ({ ...j, enCancha: false })));
+  } else {
+    newOnField = [...onField];
+    // Promote benched players before inventing new ones
+    while (newOnField.length < targetCount && bench.length > 0) {
+      const promoted = bench.shift()!;
+      newOnField.push({ ...promoted, enCancha: true });
     }
-    // Squad grows: reuse the default plantilla when its number is free
-    const candidate = plantilla[i];
-    let numero: number;
-    let nombre: string;
-    if (candidate && !usedNumbers.has(candidate.numero)) {
-      numero = candidate.numero;
-      nombre = candidate.nombre;
-    } else {
-      numero = getNextUnusedNumber(result.concat(currentPlayers));
-      nombre = `Jugador ${numero}`;
+    const usedNumbers = new Set([...newOnField, ...bench].map((j) => j.numero));
+    while (newOnField.length < targetCount) {
+      const candidate = plantilla[newOnField.length];
+      let numero: number;
+      let nombre: string;
+      if (candidate && !usedNumbers.has(candidate.numero)) {
+        numero = candidate.numero;
+        nombre = candidate.nombre;
+      } else {
+        numero = getNextUnusedNumber([...newOnField, ...bench]);
+        nombre = `Jugador ${numero}`;
+      }
+      usedNumbers.add(numero);
+      newOnField.push({ numero, nombre, x: 0, y: 0, enCancha: true });
     }
-    usedNumbers.add(numero);
-    result.push({ numero, nombre, x: layout[i].x, y: layout[i].y });
   }
-  return result;
+
+  const layout = buildFormationLayout(newOnField.length, side);
+  const laid = newOnField.map((j, i) => ({ ...j, x: layout[i].x, y: layout[i].y, enCancha: true }));
+  return [...laid, ...bench];
 }
 
 /**
- * Re-distribute the CURRENT squad onto the logical grid (auto-arrange).
- * Keeps every player; only positions change.
+ * Re-distribute only the ON-FIELD players onto the logical grid (auto-arrange).
+ * Benched players keep their identity and position untouched.
  */
 export function autoArrangeTeam(players: Jugador[], side: 'local' | 'visitante'): Jugador[] {
-  const layout = buildFormationLayout(players.length, side);
-  return players.map((j, i) => ({ ...j, x: layout[i].x, y: layout[i].y }));
+  const onFieldCount = players.filter(isOnField).length;
+  const layout = buildFormationLayout(onFieldCount, side);
+  let i = 0;
+  return players.map((j) => {
+    if (!isOnField(j)) return j;
+    const pos = layout[i++];
+    return { ...j, x: pos.x, y: pos.y };
+  });
 }
 
 /** Default full squads with computed positions (used on first load). */

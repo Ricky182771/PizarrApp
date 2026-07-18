@@ -17,7 +17,8 @@ export function usePercentDrag({
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   onMove?: (x: number, y: number) => void;
-  onEnd?: (x: number, y: number) => void;
+  /** Called on drop with % coords and the raw pointer client coords */
+  onEnd?: (x: number, y: number, client?: { clientX: number; clientY: number }) => void;
   /** Called once when the drag threshold is first exceeded */
   onDragStart?: () => void;
   /** Minimum px distance pointer must move before drag begins (default: 8) */
@@ -148,7 +149,7 @@ export function usePercentDrag({
         // Only fire onEnd if a real drag occurred
         if (thresholdExceeded.current) {
           const [px, py] = toPercent(ev.clientX, ev.clientY);
-          onEnd?.(px, py);
+          onEnd?.(px, py, { clientX: ev.clientX, clientY: ev.clientY });
         }
         elRef.current?.releasePointerCapture(ev.pointerId);
         document.removeEventListener('pointermove', handlePointerMove);

@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Plus, Minus, LayoutGrid } from 'lucide-react';
 import type { Jugador } from '../types';
+import { isOnField } from '../constants/formations';
+import BanquilloPanel from './BanquilloPanel';
 
 export type TeamSide = 'local' | 'visitante';
 
@@ -28,6 +30,8 @@ function TeamPanel({
   onAddPlayer,
   onRemovePlayer,
 }: TeamPanelProps) {
+  const onFieldCount = players.filter(isOnField).length;
+  const benchCount = players.length - onFieldCount;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -35,7 +39,9 @@ function TeamPanel({
           <span className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ backgroundColor: color }} />
           {label}
         </span>
-        <span className="text-[10px] text-text-muted font-medium">{players.length} jugadores</span>
+        <span className="text-[10px] text-text-muted font-medium">
+          {onFieldCount} en campo{benchCount > 0 ? ` · ${benchCount} banca` : ''}
+        </span>
       </div>
       <div className="flex items-center justify-between gap-3">
         {/* Formation presets */}
@@ -46,10 +52,10 @@ function TeamPanel({
               onClick={() => onFormationChange(side, sz)}
               className="px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all duration-150 cursor-pointer"
               style={{
-                backgroundColor: players.length === sz ? 'var(--color-surface-600)' : 'transparent',
-                color: players.length === sz ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                backgroundColor: onFieldCount === sz ? 'var(--color-surface-600)' : 'transparent',
+                color: onFieldCount === sz ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
               }}
-              aria-pressed={players.length === sz}
+              aria-pressed={onFieldCount === sz}
             >
               F{sz}
             </button>
@@ -88,7 +94,7 @@ function TeamPanel({
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-600/10 text-red-400 border border-red-500/20 hover:bg-red-600/20 transition-colors cursor-pointer disabled:opacity-40"
             title={`Eliminar último jugador ${label.toLowerCase()}`}
             aria-label={`Eliminar último jugador ${label.toLowerCase()}`}
-            disabled={players.length === 0}
+            disabled={onFieldCount === 0}
           >
             <Minus size={13} strokeWidth={2.5} />
           </button>
@@ -110,6 +116,9 @@ export interface TeamConfigProps {
   onAddPlayer: (side: TeamSide) => void;
   onRemovePlayer: (side: TeamSide) => void;
   onAutoArrange: () => void;
+  onSendToField: (side: TeamSide, numero: number) => void;
+  onPlayerNameChange: (side: TeamSide, numero: number, name: string) => void;
+  onPlayerNumberChange: (side: TeamSide, oldNumero: number, newNumero: number) => void;
 }
 
 /**
@@ -129,7 +138,12 @@ function TeamConfig({
   onAddPlayer,
   onRemovePlayer,
   onAutoArrange,
+  onSendToField,
+  onPlayerNameChange,
+  onPlayerNumberChange,
 }: TeamConfigProps) {
+  const benchLocal = local.filter((j) => !isOnField(j));
+  const benchVisitante = visitante.filter((j) => !isOnField(j));
   return (
     <div className="space-y-4">
       {/* Scoreboard toggle */}
@@ -159,6 +173,15 @@ function TeamConfig({
           onAddPlayer={onAddPlayer}
           onRemovePlayer={onRemovePlayer}
         />
+        <BanquilloPanel
+          side="local"
+          label="Local"
+          players={benchLocal}
+          color={colorLocal}
+          onSendToField={onSendToField}
+          onNameChange={onPlayerNameChange}
+          onNumberChange={onPlayerNumberChange}
+        />
       </div>
 
       <div className="pb-3 border-b border-white/5">
@@ -172,6 +195,15 @@ function TeamConfig({
           onColorPickerOpen={onColorPickerOpen}
           onAddPlayer={onAddPlayer}
           onRemovePlayer={onRemovePlayer}
+        />
+        <BanquilloPanel
+          side="visitante"
+          label="Visitante"
+          players={benchVisitante}
+          color={colorVisitante}
+          onSendToField={onSendToField}
+          onNameChange={onPlayerNameChange}
+          onNumberChange={onPlayerNumberChange}
         />
       </div>
 

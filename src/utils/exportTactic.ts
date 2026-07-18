@@ -470,9 +470,11 @@ export function renderTacticToCanvas(data: TacticaGuardada, portrait: boolean): 
     }
   });
 
-  // 6. Draw players
+  // 6. Draw players (benched players are not on the pitch)
   const drawPlayersOnCanvas = (playersList: Jugador[], jerseyColor: string) => {
-    playersList.forEach((j) => {
+    playersList
+      .filter((j) => j.enCancha !== false)
+      .forEach((j) => {
       const pX = portrait ? (j.y / 100) * w : (j.x / 100) * w;
       const pY = portrait ? ((100 - j.x) / 100) * h : (j.y / 100) * h;
 

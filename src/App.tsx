@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent } from 'react'
 import { Pencil } from 'lucide-react'
 import Cancha from './components/Cancha'
 import FichaJugador from './components/FichaJugador'
@@ -23,6 +23,7 @@ import {
   autoArrangeTeam,
   getNextUnusedNumber,
   findFreeSpot,
+  isOnField,
 } from './constants/formations'
 import {
   loadFromLS,
@@ -433,6 +434,17 @@ function App() {
   const handleLocalNumberChange = useMemo(() => handleNumberChange('local'), [handleNumberChange])
   const handleVisitanteNumberChange = useMemo(() => handleNumberChange('visitante'), [handleNumberChange])
 
+  // Side-parameterised wrappers for the bench editor (BanquilloPanel)
+  const handlePlayerNameChange = useCallback(
+    (side: TeamSide, numero: number, name: string) => handleNameChange(side)(numero, name),
+    [handleNameChange],
+  )
+  const handlePlayerNumberChange = useCallback(
+    (side: TeamSide, oldNumero: number, newNumero: number) =>
+      handleNumberChange(side)(oldNumero, newNumero),
+    [handleNumberChange],
+  )
+
   /* ── Team configuration handlers ──────────────────────────────────── */
   const handleFormationChange = useCallback(
     (side: TeamSide, size: 7 | 9 | 11) => {
@@ -457,14 +469,75 @@ function App() {
   const handleRemovePlayer = useCallback(
     (side: TeamSide) => {
       setTeam(side, (prev) => {
-        if (prev.length === 0) return prev
-        const lastPlayer = prev[prev.length - 1]
+        const onField = prev.filter(isOnField)
+        if (onField.length === 0) return prev
+        const lastPlayer = onField[onField.length - 1]
         showToast(`- Jugador ${side} ${lastPlayer.numero}`)
         return prev.filter((p) => p.numero !== lastPlayer.numero)
       })
     },
     [setTeam, showToast],
   )
+
+  /* ── Bench / substitutions ────────────────────────────────────────── */
+  const handleSendToField = useCallback(
+    (side: TeamSide, numero: number) => {
+      setTeam(side, (prev) => {
+        const spot = findFreeSpot(prev.filter(isOnField), side)
+        return prev.map((j) =>
+          j.numero === numero ? { ...j, x: spot.x, y: spot.y, enCancha: true } : j,
+        )
+      })
+      showToast('↑ Jugador al campo')
+    },
+    [setTeam, showToast],
+  )
+
+  const handleSendToBench = useCallback(
+    (side: TeamSide) => (numero: number) => {
+      setTeam(side, (prev) => prev.map((j) => (j.numero === numero ? { ...j, enCancha: false } : j)))
+      showToast('↓ Jugador al banquillo')
+    },
+    [setTeam, showToast],
+  )
+  const handleSendLocalToBench = useMemo(() => handleSendToBench('local'), [handleSendToBench])
+  const handleSendVisitanteToBench = useMemo(() => handleSendToBench('visitante'), [handleSendToBench])
+
+  // Drop a benched player onto the pitch at the drop point (native HTML5 DnD).
+  const handleBenchDropToField = useCallback(
+    (side: TeamSide, numero: number, clientX: number, clientY: number) => {
+      const c = canchaRef.current
+      if (!c) return
+      const r = c.getBoundingClientRect()
+      const sx = Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100))
+      const sy = Math.max(0, Math.min(100, ((clientY - r.top) / r.height) * 100))
+      const { x, y } = toField(sx, sy)
+      setTeam(side, (prev) =>
+        prev.map((j) => (j.numero === numero ? { ...j, x, y, enCancha: true } : j)),
+      )
+      showToast('↑ Jugador al campo')
+    },
+    [toField, setTeam, showToast],
+  )
+
+  const handleFieldDrop = useCallback(
+    (e: DragEvent) => {
+      const raw = e.dataTransfer.getData('application/x-pizarra-sub')
+      if (!raw) return
+      e.preventDefault()
+      try {
+        const { team, numero } = JSON.parse(raw) as { team: TeamSide; numero: number }
+        handleBenchDropToField(team, numero, e.clientX, e.clientY)
+      } catch {
+        /* ignore malformed payload */
+      }
+    },
+    [handleBenchDropToField],
+  )
+
+  const handleFieldDragOver = useCallback((e: DragEvent) => {
+    if (e.dataTransfer.types.includes('application/x-pizarra-sub')) e.preventDefault()
+  }, [])
 
   const handleAutoArrange = useCallback(() => {
     setLocal((prev) => autoArrangeTeam(prev, 'local'))
@@ -658,9 +731,10 @@ function App() {
   /* ── Derived rendering data ───────────────────────────────────────── */
   const snapStep = snapEnabled ? SNAP_STEP : undefined
 
-  // During playback/scrubbing render the interpolated board, else the live one
-  const displayLocal = animation.override?.local ?? local
-  const displayVisitante = animation.override?.visitante ?? visitante
+  // During playback/scrubbing render the interpolated board, else the live one.
+  // Only on-field players are drawn on the pitch (benched ones live in a panel).
+  const displayLocal = (animation.override?.local ?? local).filter(isOnField)
+  const displayVisitante = (animation.override?.visitante ?? visitante).filter(isOnField)
   const displayElements = animation.override?.elements ?? elements
 
   // Screen-space arrows/elements (mobile pitch is rotated 90°)
@@ -704,6 +778,8 @@ function App() {
   const fieldContent = (
     <div
       {...pointerHandlers}
+      onDragOver={handleFieldDragOver}
+      onDrop={handleFieldDrop}
       style={{
         transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
         transformOrigin: 'center center',
@@ -752,6 +828,7 @@ function App() {
             onDelete={handleDeleteLocalPlayer}
             onNameChange={handleLocalNameChange}
             onNumberChange={handleLocalNumberChange}
+            onSendToBench={handleSendLocalToBench}
             isMobile={isMobile}
             snapStep={snapStep}
           />
@@ -769,6 +846,7 @@ function App() {
             onDelete={handleDeleteVisitantePlayer}
             onNameChange={handleVisitanteNameChange}
             onNumberChange={handleVisitanteNumberChange}
+            onSendToBench={handleSendVisitanteToBench}
             isMobile={isMobile}
             snapStep={snapStep}
           />
@@ -790,6 +868,9 @@ function App() {
       onAddPlayer={handleAddPlayer}
       onRemovePlayer={handleRemovePlayer}
       onAutoArrange={handleAutoArrange}
+      onSendToField={handleSendToField}
+      onPlayerNameChange={handlePlayerNameChange}
+      onPlayerNumberChange={handlePlayerNumberChange}
     />
   )
 

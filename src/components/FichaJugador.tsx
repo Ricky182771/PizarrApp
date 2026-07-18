@@ -23,6 +23,8 @@ export interface FichaJugadorProps {
   onNameChange?: (numero: number, newName: string) => void;
   /** Called when the player number is edited */
   onNumberChange?: (oldNumero: number, newNumber: number) => void;
+  /** Called to bench this player (drop over a bench zone, or the modal button) */
+  onSendToBench?: (numero: number) => void;
   /** Whether we are in mobile layout (vertical pitch) */
   isMobile?: boolean;
   /** Optional grid step in % — when set, drag positions snap to the grid */
@@ -49,6 +51,7 @@ function FichaJugador({
   onDelete,
   onNameChange,
   onNumberChange,
+  onSendToBench,
   isMobile = false,
   snapStep,
 }: FichaJugadorProps) {
@@ -96,8 +99,16 @@ function FichaJugador({
     onMove: (nx, ny) => {
       onDragEnd?.(numero, nx, ny);
     },
-    onEnd: (nx, ny) => {
+    onEnd: (nx, ny, client) => {
       setIsDragging(false);
+      // Dropping over a bench zone benches the player instead of repositioning.
+      if (client && onSendToBench) {
+        const target = document.elementFromPoint(client.clientX, client.clientY) as HTMLElement | null;
+        if (target?.closest('[data-bench-dropzone]')) {
+          onSendToBench(numero);
+          return;
+        }
+      }
       onDragEnd?.(numero, nx, ny);
     },
   });
@@ -192,7 +203,19 @@ function FichaJugador({
             >
               Guardar Cambios
             </button>
-            
+
+            {onSendToBench && (
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  onSendToBench(numero);
+                }}
+                className="w-full py-3 rounded-xl bg-surface-700 hover:bg-surface-600 text-text-secondary hover:text-text-primary text-xs font-bold transition-all duration-200 active:scale-98 cursor-pointer"
+              >
+                Enviar al banquillo
+              </button>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleDelete}
