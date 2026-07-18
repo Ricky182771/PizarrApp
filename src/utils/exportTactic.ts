@@ -221,6 +221,34 @@ export function renderTacticToCanvas(data: TacticaGuardada, portrait: boolean): 
   ctx.arc(padX + fieldW, padY + fieldH, cornerRadius, Math.PI, -Math.PI / 2);
   ctx.stroke();
 
+  // 3.5 Draw zones first so they sit behind arrows, elements and players
+  data.elements
+    .filter((el) => el.type === 'zone')
+    .forEach((el) => {
+      const scale = el.scale ?? 1;
+      const elX = portrait ? (el.y / 100) * w : (el.x / 100) * w;
+      const elY = portrait ? ((100 - el.x) / 100) * h : (el.y / 100) * h;
+      const base = w * 0.09 * scale;
+
+      ctx.save();
+      ctx.translate(elX, elY);
+      if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180);
+      ctx.fillStyle = 'rgba(252, 211, 77, 0.15)';
+      ctx.strokeStyle = 'rgba(252, 211, 77, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      if ((el.shape ?? 'circle') === 'circle') {
+        ctx.arc(0, 0, base / 2, 0, Math.PI * 2);
+      } else {
+        ctx.roundRect(-base / 2, -base / 2, base, base, 8);
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    });
+
   // 4. Draw lines (arrows)
   data.arrows.forEach((arr) => {
     const scale = arr.scale ?? 1;
@@ -232,10 +260,28 @@ export function renderTacticToCanvas(data: TacticaGuardada, portrait: boolean): 
     const x2 = portrait ? arr.y2 : arr.x2;
     const y2 = portrait ? 100 - arr.x2 : arr.y2;
 
+    const style = arr.style ?? 'solid';
+    ctx.setLineDash(style === 'dashed' ? [14 * scale, 12 * scale] : []);
+
     ctx.beginPath();
     ctx.moveTo((x1 / 100) * w, (y1 / 100) * h);
-    ctx.lineTo((x2 / 100) * w, (y2 / 100) * h);
+    if (style === 'curved') {
+      // Control point (field %) — derived default when never shaped
+      const midXf = (arr.x1 + arr.x2) / 2;
+      const midYf = (arr.y1 + arr.y2) / 2;
+      const dxf = arr.x2 - arr.x1;
+      const dyf = arr.y2 - arr.y1;
+      const lenf = Math.hypot(dxf, dyf) || 1;
+      const cxf = arr.cx ?? midXf + (-dyf / lenf) * 15;
+      const cyf = arr.cy ?? midYf + (dxf / lenf) * 15;
+      const cxE = portrait ? cyf : cxf;
+      const cyE = portrait ? 100 - cxf : cyf;
+      ctx.quadraticCurveTo((cxE / 100) * w, (cyE / 100) * h, (x2 / 100) * w, (y2 / 100) * h);
+    } else {
+      ctx.lineTo((x2 / 100) * w, (y2 / 100) * h);
+    }
     ctx.stroke();
+    ctx.setLineDash([]);
 
     ctx.fillStyle = '#facc15';
     ctx.beginPath();
@@ -246,8 +292,9 @@ export function renderTacticToCanvas(data: TacticaGuardada, portrait: boolean): 
     ctx.fill();
   });
 
-  // 5. Draw elements
+  // 5. Draw elements (zones already drawn above)
   data.elements.forEach((el) => {
+    if (el.type === 'zone') return;
     const scale = el.scale ?? 1;
     const elX = portrait ? (el.y / 100) * w : (el.x / 100) * w;
     const elY = portrait ? ((100 - el.x) / 100) * h : (el.y / 100) * h;

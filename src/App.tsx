@@ -483,6 +483,8 @@ function App() {
           x: 50,
           y: 50,
           text: type === 'text' ? 'Texto' : undefined,
+          // Zones start large and circular so they read as an area, not a token
+          ...(type === 'zone' ? { shape: 'circle' as const, scale: 2 } : {}),
         }
         setElements((prev) => [...prev, newElement])
         const names: Record<ElementType, string> = {
@@ -491,6 +493,7 @@ function App() {
           text: 'Texto',
           goal: 'Portería',
           dummy: 'Barrera',
+          zone: 'Zona',
         }
         showToast(`+ ${names[type] || 'Elemento'} añadido`)
       }
@@ -526,16 +529,25 @@ function App() {
     setElements((prev) => prev.map((el) => (el.id === id ? { ...el, rotation } : el)))
   }, [])
 
+  const handleElementShapeChange = useCallback((id: string, shape: 'circle' | 'rect') => {
+    setElements((prev) => prev.map((el) => (el.id === id ? { ...el, shape } : el)))
+  }, [])
+
   const handleArrowUpdate = useCallback(
     (id: string, updates: Partial<ArrowItem>) => {
-      // Arrows are edited in screen coordinates — map back to field space
+      // Arrows are edited in screen coordinates — map back to field space.
+      // (screen x = field y, screen y = 100 − field x). Non-positional keys
+      // like `style` pass through unchanged.
       const mapped: Partial<ArrowItem> = isMobile
         ? {
             ...(updates.x1 !== undefined && { y1: updates.x1 }),
             ...(updates.y1 !== undefined && { x1: 100 - updates.y1 }),
             ...(updates.x2 !== undefined && { y2: updates.x2 }),
             ...(updates.y2 !== undefined && { x2: 100 - updates.y2 }),
+            ...(updates.cx !== undefined && { cy: updates.cx }),
+            ...(updates.cy !== undefined && { cx: 100 - updates.cy }),
             ...(updates.scale !== undefined && { scale: updates.scale }),
+            ...(updates.style !== undefined && { style: updates.style }),
           }
         : updates
       setArrows((prev) => prev.map((arr) => (arr.id === id ? { ...arr, ...mapped } : arr)))
@@ -615,7 +627,16 @@ function App() {
   const screenArrows = useMemo(
     () =>
       isMobile
-        ? arrows.map((arr) => ({ ...arr, x1: arr.y1, y1: 100 - arr.x1, x2: arr.y2, y2: 100 - arr.x2 }))
+        ? arrows.map((arr) => ({
+            ...arr,
+            x1: arr.y1,
+            y1: 100 - arr.x1,
+            x2: arr.y2,
+            y2: 100 - arr.x2,
+            ...(arr.cx !== undefined && arr.cy !== undefined
+              ? { cx: arr.cy, cy: 100 - arr.cx }
+              : {}),
+          }))
         : arrows,
     [arrows, isMobile],
   )
@@ -674,6 +695,7 @@ function App() {
             onTextChange={handleElementTextChange}
             onScaleChange={handleElementScaleChange}
             onRotationChange={handleElementRotationChange}
+            onShapeChange={handleElementShapeChange}
             snapStep={snapStep}
           />
         ))}

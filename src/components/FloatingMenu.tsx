@@ -18,6 +18,7 @@ import {
   Goal,
   Shield,
   Shapes,
+  Circle,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -248,6 +249,12 @@ export default function FloatingMenu({
       label: 'Barrera',
       desc: 'Barrera de entrenamiento',
       icon: <Shield size={18} strokeWidth={2} />,
+    },
+    {
+      type: 'zone' as const,
+      label: 'Zona',
+      desc: 'Área resaltada (presión / fuera de juego)',
+      icon: <Circle size={18} strokeWidth={2} />,
     },
   ];
 

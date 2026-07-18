@@ -20,6 +20,7 @@ import {
   Shield,
   Shapes,
   Download,
+  Circle,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -119,6 +120,7 @@ export default function DesktopSidebar({
     { type: 'text' as const, label: 'Texto', icon: <Type size={18} strokeWidth={2} /> },
     { type: 'goal' as const, label: 'Portería', icon: <Goal size={18} strokeWidth={2} /> },
     { type: 'dummy' as const, label: 'Barrera', icon: <Shield size={18} strokeWidth={2} /> },
+    { type: 'zone' as const, label: 'Zona', icon: <Circle size={18} strokeWidth={2} /> },
   ];
 
   return (

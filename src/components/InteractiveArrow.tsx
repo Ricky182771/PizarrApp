@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import type { ArrowItem } from '../types';
+import type { ArrowItem, ArrowStyle } from '../types';
 
 interface InteractiveArrowProps {
   arrow: ArrowItem;
@@ -8,6 +8,14 @@ interface InteractiveArrowProps {
   onDelete: (id: string) => void;
   onScaleChange?: (id: string, scale: number) => void;
 }
+
+const STYLE_ORDER: ArrowStyle[] = ['solid', 'dashed', 'curved'];
+const STYLE_GLYPH: Record<ArrowStyle, string> = { solid: '─', dashed: '┄', curved: '∿' };
+const STYLE_LABEL: Record<ArrowStyle, string> = {
+  solid: 'sólida',
+  dashed: 'punteada',
+  curved: 'curva',
+};
 
 function InteractiveArrow({
   arrow,
@@ -55,7 +63,7 @@ function InteractiveArrow({
   );
 
   const startDrag = useCallback(
-    (point: 'p1' | 'p2', e: React.PointerEvent) => {
+    (point: 'p1' | 'p2' | 'control', e: React.PointerEvent) => {
       if (e.button !== 0) return;
       e.stopPropagation();
       const el = e.currentTarget as HTMLElement;
@@ -66,8 +74,10 @@ function InteractiveArrow({
         const [x, y] = toPercent(ev.clientX, ev.clientY);
         if (point === 'p1') {
           onUpdate(arrow.id, { x1: x, y1: y });
-        } else {
+        } else if (point === 'p2') {
           onUpdate(arrow.id, { x2: x, y2: y });
+        } else {
+          onUpdate(arrow.id, { cx: x, cy: y });
         }
       };
 
@@ -96,6 +106,10 @@ function InteractiveArrow({
       const initialY1 = arrow.y1;
       const initialX2 = arrow.x2;
       const initialY2 = arrow.y2;
+      // Move the control point in lock-step so the curve keeps its shape
+      const hasCtrl = arrow.cx !== undefined && arrow.cy !== undefined;
+      const initialCx = arrow.cx ?? 0;
+      const initialCy = arrow.cy ?? 0;
 
       const c = constraintsRef.current;
       if (!c) return;
@@ -129,6 +143,10 @@ function InteractiveArrow({
           y1: Math.round((initialY1 + clampedDy) * 100) / 100,
           x2: Math.round((initialX2 + clampedDx) * 100) / 100,
           y2: Math.round((initialY2 + clampedDy) * 100) / 100,
+          ...(hasCtrl && {
+            cx: Math.round((initialCx + clampedDx) * 100) / 100,
+            cy: Math.round((initialCy + clampedDy) * 100) / 100,
+          }),
         });
       };
 
@@ -212,39 +230,89 @@ function InteractiveArrow({
   const strokeW = 3.5 * scale;
   const handleSize = Math.max(10, 12 * scale);
 
-  // Middle point for rendering the delete button
+  const style: ArrowStyle = arrow.style ?? 'solid';
+  const isCurved = style === 'curved';
+
+  // Control point (screen %) — derived from a perpendicular offset when the
+  // curve has never been shaped, persisted once the user drags the handle.
   const midX = (arrow.x1 + arrow.x2) / 2;
   const midY = (arrow.y1 + arrow.y2) / 2;
+  const dxl = arrow.x2 - arrow.x1;
+  const dyl = arrow.y2 - arrow.y1;
+  const len = Math.hypot(dxl, dyl) || 1;
+  const defCx = midX + (-dyl / len) * 15;
+  const defCy = midY + (dxl / len) * 15;
+  const cx = arrow.cx ?? defCx;
+  const cy = arrow.cy ?? defCy;
+
+  const pathD = isCurved
+    ? `M ${arrow.x1} ${arrow.y1} Q ${cx} ${cy} ${arrow.x2} ${arrow.y2}`
+    : `M ${arrow.x1} ${arrow.y1} L ${arrow.x2} ${arrow.y2}`;
+
+  // Point on the arrow used to anchor the delete / style buttons.
+  const btnX = isCurved ? 0.25 * arrow.x1 + 0.5 * cx + 0.25 * arrow.x2 : midX;
+  const btnY = isCurved ? 0.25 * arrow.y1 + 0.5 * cy + 0.25 * arrow.y2 : midY;
+
+  const dashArray = style === 'dashed' ? `${Math.max(3, 3 * scale)} ${Math.max(3, 3 * scale)}` : undefined;
+
+  const cycleStyle = useCallback(() => {
+    const next = STYLE_ORDER[(STYLE_ORDER.indexOf(style) + 1) % STYLE_ORDER.length];
+    onUpdate(arrow.id, { style: next });
+  }, [arrow.id, onUpdate, style]);
 
   return (
     <div ref={wrapperRef} className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
-      {/* ── SVG Arrow (Simple Line) ── */}
+      {/* ── SVG Arrow ── */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         {/* Thick invisible stroke to make dragging the line body easy */}
-        <line
-          x1={`${arrow.x1}%`}
-          y1={`${arrow.y1}%`}
-          x2={`${arrow.x2}%`}
-          y2={`${arrow.y2}%`}
+        <path
+          d={pathD}
+          fill="none"
           stroke="transparent"
           strokeWidth={Math.max(20, 20 * scale)}
+          vectorEffect="non-scaling-stroke"
           className="pointer-events-auto cursor-grab active:cursor-grabbing"
           onPointerDown={startDragLine}
         />
-        {/* Visible Solid Line */}
-        <line
-          x1={`${arrow.x1}%`}
-          y1={`${arrow.y1}%`}
-          x2={`${arrow.x2}%`}
-          y2={`${arrow.y2}%`}
+        {/* Visible line */}
+        <path
+          d={pathD}
+          fill="none"
           stroke="#facc15"
           strokeWidth={strokeW}
+          strokeLinecap="round"
+          strokeDasharray={dashArray}
+          vectorEffect="non-scaling-stroke"
         />
       </svg>
+
+      {/* ── Curve control handle ── */}
+      {isCurved && (
+        <div
+          onPointerDown={(e) => startDrag('control', e)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="absolute z-30 touch-none flex items-center justify-center cursor-move pointer-events-auto"
+          style={{
+            width: Math.max(40, 40 * scale),
+            height: Math.max(40, 40 * scale),
+            left: `${cx}%`,
+            top: `${cy}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div
+            className="rounded-full bg-amber-300/80 border border-black/60 shadow"
+            style={{ width: handleSize * 0.8, height: handleSize * 0.8 }}
+          />
+        </div>
+      )}
 
       {/* ── Interactive Handles (With large touch targets) ── */}
       <div
@@ -291,28 +359,45 @@ function InteractiveArrow({
         />
       </div>
 
-      {/* ── Delete Button at the center (visible on hover) ── */}
+      {/* ── Contextual controls (visible on hover): change style + delete ── */}
       {hovered && (
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(arrow.id);
+        <div
+          className="absolute z-40 flex items-center gap-1 pointer-events-none"
+          style={{
+            left: `${btnX}%`,
+            top: `${btnY}%`,
+            transform: 'translate(-50%, -50%)',
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className="absolute z-40 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs
-                     flex items-center justify-center shadow-md cursor-pointer transition-colors pointer-events-auto"
-          style={{
-            left: `${midX}%`,
-            top: `${midY}%`,
-            transform: 'translate(-50%, -50%)',
-          }}
-          title="Eliminar línea"
-          aria-label="Eliminar línea"
         >
-          ×
-        </button>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              cycleStyle();
+            }}
+            className="w-5 h-5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold
+                       flex items-center justify-center shadow-md cursor-pointer transition-colors pointer-events-auto leading-none"
+            title={`Estilo: línea ${STYLE_LABEL[style]} (clic para cambiar)`}
+            aria-label="Cambiar estilo de línea"
+          >
+            {STYLE_GLYPH[style]}
+          </button>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(arrow.id);
+            }}
+            className="w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs
+                       flex items-center justify-center shadow-md cursor-pointer transition-colors pointer-events-auto"
+            title="Eliminar línea"
+            aria-label="Eliminar línea"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

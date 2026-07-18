@@ -1,6 +1,6 @@
 /* ── Shared types for field annotations ────────────────────────────────── */
 
-export type ElementType = 'ball' | 'cone' | 'text' | 'goal' | 'dummy';
+export type ElementType = 'ball' | 'cone' | 'text' | 'goal' | 'dummy' | 'zone';
 
 export interface FieldElement {
   id: string;
@@ -10,7 +10,11 @@ export interface FieldElement {
   text?: string;
   scale?: number;
   rotation?: number; // in degrees, e.g. 0 to 360
+  /** Only meaningful for type 'zone' — highlighted-area shape (default 'circle') */
+  shape?: 'circle' | 'rect';
 }
+
+export type ArrowStyle = 'solid' | 'dashed' | 'curved';
 
 export interface ArrowItem {
   id: string;
@@ -19,6 +23,11 @@ export interface ArrowItem {
   x2: number;
   y2: number;
   scale?: number;
+  /** Stroke style (default 'solid' when absent — keeps old tactics valid) */
+  style?: ArrowStyle;
+  /** Bézier control point (field %), only used/persisted for 'curved' arrows */
+  cx?: number;
+  cy?: number;
 }
 
 export interface Jugador {
@@ -67,12 +76,13 @@ export function isValidFieldElement(el: unknown): el is FieldElement {
   const o = el as Record<string, unknown>;
   return (
     typeof o.id === 'string' &&
-    (o.type === 'ball' || o.type === 'cone' || o.type === 'text' || o.type === 'goal' || o.type === 'dummy') &&
+    (o.type === 'ball' || o.type === 'cone' || o.type === 'text' || o.type === 'goal' || o.type === 'dummy' || o.type === 'zone') &&
     typeof o.x === 'number' && Number.isFinite(o.x) && o.x >= 0 && o.x <= 100 &&
     typeof o.y === 'number' && Number.isFinite(o.y) && o.y >= 0 && o.y <= 100 &&
     (o.text === undefined || (typeof o.text === 'string' && o.text.length <= 200)) &&
     (o.scale === undefined || (typeof o.scale === 'number' && o.scale >= 0.5 && o.scale <= 3)) &&
-    (o.rotation === undefined || (typeof o.rotation === 'number' && Number.isFinite(o.rotation)))
+    (o.rotation === undefined || (typeof o.rotation === 'number' && Number.isFinite(o.rotation))) &&
+    (o.shape === undefined || o.shape === 'circle' || o.shape === 'rect')
   );
 }
 
@@ -85,7 +95,10 @@ export function isValidArrowItem(arr: unknown): arr is ArrowItem {
     typeof o.y1 === 'number' && Number.isFinite(o.y1) && o.y1 >= 0 && o.y1 <= 100 &&
     typeof o.x2 === 'number' && Number.isFinite(o.x2) && o.x2 >= 0 && o.x2 <= 100 &&
     typeof o.y2 === 'number' && Number.isFinite(o.y2) && o.y2 >= 0 && o.y2 <= 100 &&
-    (o.scale === undefined || (typeof o.scale === 'number' && o.scale >= 0.5 && o.scale <= 3))
+    (o.scale === undefined || (typeof o.scale === 'number' && o.scale >= 0.5 && o.scale <= 3)) &&
+    (o.style === undefined || o.style === 'solid' || o.style === 'dashed' || o.style === 'curved') &&
+    (o.cx === undefined || (typeof o.cx === 'number' && Number.isFinite(o.cx) && o.cx >= 0 && o.cx <= 100)) &&
+    (o.cy === undefined || (typeof o.cy === 'number' && Number.isFinite(o.cy) && o.cy >= 0 && o.cy <= 100))
   );
 }
 
