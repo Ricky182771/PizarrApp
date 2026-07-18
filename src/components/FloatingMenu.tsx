@@ -19,6 +19,7 @@ import {
   Shield,
   Shapes,
   Circle,
+  Film,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -37,6 +38,7 @@ interface FloatingMenuProps {
   isTeamConfigOpen: boolean;
   setIsTeamConfigOpen: (open: boolean) => void;
   teamConfigContent: React.ReactNode;
+  animationContent: React.ReactNode;
 
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
@@ -59,6 +61,7 @@ export default function FloatingMenu({
   isTeamConfigOpen,
   setIsTeamConfigOpen,
   teamConfigContent,
+  animationContent,
   mostrarMarcador,
   setMostrarMarcador,
   slotNames,
@@ -68,6 +71,7 @@ export default function FloatingMenu({
 }: FloatingMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExtrasOpen, setIsExtrasOpen] = useState(false);
+  const [isAnimationOpen, setIsAnimationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // Initial position: bottom left of the window (client-only app, window always exists)
   const [position, setPosition] = useState(() => ({ x: 16, y: window.innerHeight - 150 }));
@@ -97,6 +101,7 @@ export default function FloatingMenu({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsExtrasOpen(false);
+        setIsAnimationOpen(false);
         setIsSettingsOpen(false);
         setIsTeamConfigOpen(false);
       }
@@ -107,6 +112,7 @@ export default function FloatingMenu({
 
   const closeAll = () => {
     setIsExtrasOpen(false);
+    setIsAnimationOpen(false);
     setIsSettingsOpen(false);
     setIsTeamConfigOpen(false);
   };
@@ -180,18 +186,26 @@ export default function FloatingMenu({
     }
   };
 
-  const handleTogglePanel = (panel: 'extras' | 'teams' | 'settings') => {
+  const handleTogglePanel = (panel: 'extras' | 'teams' | 'animation' | 'settings') => {
     if (panel === 'extras') {
       setIsExtrasOpen(!isExtrasOpen);
+      setIsAnimationOpen(false);
       setIsSettingsOpen(false);
       setIsTeamConfigOpen(false);
     } else if (panel === 'teams') {
       setIsTeamConfigOpen(!isTeamConfigOpen);
       setIsExtrasOpen(false);
+      setIsAnimationOpen(false);
       setIsSettingsOpen(false);
+    } else if (panel === 'animation') {
+      setIsAnimationOpen(!isAnimationOpen);
+      setIsExtrasOpen(false);
+      setIsSettingsOpen(false);
+      setIsTeamConfigOpen(false);
     } else if (panel === 'settings') {
       setIsSettingsOpen(!isSettingsOpen);
       setIsExtrasOpen(false);
+      setIsAnimationOpen(false);
       setIsTeamConfigOpen(false);
     }
   };
@@ -258,7 +272,7 @@ export default function FloatingMenu({
     },
   ];
 
-  const anyPanelOpen = isExtrasOpen || isTeamConfigOpen || isSettingsOpen;
+  const anyPanelOpen = isExtrasOpen || isTeamConfigOpen || isAnimationOpen || isSettingsOpen;
 
   const panelBtnClass = (active: boolean) =>
     `flex items-center justify-center w-9 h-9 rounded-xl border transition-all cursor-pointer active:scale-90 ${
@@ -410,6 +424,29 @@ export default function FloatingMenu({
                       <Users size={12} /> Alineaciones y Equipos
                     </h3>
                     {teamConfigContent}
+                  </div>
+                )}
+              </div>
+
+              {/* Animación (key frames + playback) */}
+              <div className="relative">
+                <button
+                  onClick={() => handleTogglePanel('animation')}
+                  className={panelBtnClass(isAnimationOpen)}
+                  title="Animación de jugadas"
+                  aria-label="Animación de jugadas"
+                  aria-expanded={isAnimationOpen}
+                >
+                  <Film size={16} />
+                </button>
+                {isAnimationOpen && (
+                  <div
+                    className={`z-[100] rounded-xl border border-border bg-surface-700 p-4 shadow-2xl animate-in fade-in duration-150 md:absolute md:w-[300px] ${popoverPositionClass} popover-mobile`}
+                  >
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-secondary mb-3 flex items-center gap-1.5">
+                      <Film size={12} /> Animación de Jugadas
+                    </h3>
+                    {animationContent}
                   </div>
                 )}
               </div>

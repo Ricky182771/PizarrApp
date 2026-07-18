@@ -3,6 +3,11 @@ import type { Jugador, TacticaGuardada } from '../types';
 /* ── Render a tactic to an offscreen canvas (shared by PNG & PDF) ─────────
  * `portrait` mirrors the mobile board orientation: field coordinates are
  * stored in landscape space and rotated 90° when drawing in portrait.
+ *
+ * TODO(anim): a future WebM export could reuse renderTacticToCanvas by
+ * driving it through interpolateFrames() (see src/utils/animation.ts) frame
+ * by frame into a MediaRecorder(canvas.captureStream()) to record the play
+ * animation as video. Out of scope for now — live playback only.
  */
 
 interface ExportOptions {

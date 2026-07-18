@@ -37,6 +37,28 @@ export interface Jugador {
   y: number;
 }
 
+/* ── Play animation (key-frame snapshots of positions) ─────────────────── */
+
+export interface FramePlayer {
+  numero: number;
+  x: number;
+  y: number;
+}
+
+export interface FrameBall {
+  id: string;
+  x: number;
+  y: number;
+}
+
+/** A key frame: positions of both squads and any balls at one moment. */
+export interface Frame {
+  id: string;
+  local: FramePlayer[];
+  visitante: FramePlayer[];
+  balls: FrameBall[];
+}
+
 export interface TacticaGuardada {
   local: Jugador[];
   visitante: Jugador[];
@@ -52,6 +74,8 @@ export interface TacticaGuardada {
   mostrarMarcador?: boolean;
   marcadorX?: number;
   marcadorY?: number;
+  /** Recorded key frames for the play animation (optional) */
+  frames?: Frame[];
 }
 
 export function uid(): string {
@@ -102,6 +126,37 @@ export function isValidArrowItem(arr: unknown): arr is ArrowItem {
   );
 }
 
+function isFramePlayer(o: unknown): o is FramePlayer {
+  if (typeof o !== 'object' || o === null) return false;
+  const p = o as Record<string, unknown>;
+  return (
+    typeof p.numero === 'number' && Number.isFinite(p.numero) &&
+    typeof p.x === 'number' && Number.isFinite(p.x) && p.x >= 0 && p.x <= 100 &&
+    typeof p.y === 'number' && Number.isFinite(p.y) && p.y >= 0 && p.y <= 100
+  );
+}
+
+function isFrameBall(o: unknown): o is FrameBall {
+  if (typeof o !== 'object' || o === null) return false;
+  const b = o as Record<string, unknown>;
+  return (
+    typeof b.id === 'string' &&
+    typeof b.x === 'number' && Number.isFinite(b.x) && b.x >= 0 && b.x <= 100 &&
+    typeof b.y === 'number' && Number.isFinite(b.y) && b.y >= 0 && b.y <= 100
+  );
+}
+
+export function isValidFrame(f: unknown): f is Frame {
+  if (typeof f !== 'object' || f === null) return false;
+  const o = f as Record<string, unknown>;
+  return (
+    typeof o.id === 'string' &&
+    Array.isArray(o.local) && o.local.every(isFramePlayer) &&
+    Array.isArray(o.visitante) && o.visitante.every(isFramePlayer) &&
+    Array.isArray(o.balls) && o.balls.every(isFrameBall)
+  );
+}
+
 export function isValidTacticaGuardada(data: unknown): data is TacticaGuardada {
   if (typeof data !== 'object' || data === null) return false;
   const o = data as Record<string, unknown>;
@@ -119,7 +174,8 @@ export function isValidTacticaGuardada(data: unknown): data is TacticaGuardada {
     (o.golesVisitante === undefined || typeof o.golesVisitante === 'number') &&
     (o.mostrarMarcador === undefined || typeof o.mostrarMarcador === 'boolean') &&
     (o.marcadorX === undefined || typeof o.marcadorX === 'number') &&
-    (o.marcadorY === undefined || typeof o.marcadorY === 'number')
+    (o.marcadorY === undefined || typeof o.marcadorY === 'number') &&
+    (o.frames === undefined || (Array.isArray(o.frames) && o.frames.every(isValidFrame)))
   );
 }
 

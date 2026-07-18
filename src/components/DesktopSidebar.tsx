@@ -21,6 +21,7 @@ import {
   Shapes,
   Download,
   Circle,
+  Film,
 } from 'lucide-react';
 import { soccerBall } from '@lucide/lab';
 import type { ElementType } from '../types';
@@ -36,6 +37,7 @@ interface DesktopSidebarProps {
   shareUrl: string;
   isCopied: boolean;
   teamConfigContent: React.ReactNode;
+  animationContent: React.ReactNode;
   mostrarMarcador: boolean;
   setMostrarMarcador: (show: boolean) => void;
   slotNames: [string, string, string];
@@ -100,6 +102,7 @@ export default function DesktopSidebar({
   shareUrl,
   isCopied,
   teamConfigContent,
+  animationContent,
   mostrarMarcador,
   setMostrarMarcador,
   slotNames,
@@ -109,6 +112,7 @@ export default function DesktopSidebar({
 }: DesktopSidebarProps) {
   const [extrasOpen, setExtrasOpen] = useState(true);
   const [teamsOpen, setTeamsOpen] = useState(true);
+  const [animationOpen, setAnimationOpen] = useState(false);
   const [tacticsOpen, setTacticsOpen] = useState(true);
   const [exportOpen, setExportOpen] = useState(true);
   const [shareOpen, setShareOpen] = useState(true);
@@ -234,6 +238,16 @@ export default function DesktopSidebar({
           onToggle={() => setTeamsOpen(!teamsOpen)}
         >
           {teamConfigContent}
+        </Section>
+
+        {/* ── Animation Section ────────────────────────────────────── */}
+        <Section
+          title="Animación"
+          icon={<Film size={12} />}
+          open={animationOpen}
+          onToggle={() => setAnimationOpen(!animationOpen)}
+        >
+          {animationContent}
         </Section>
 
         {/* ── Tactic Slots Section ──────────────────────────────────── */}

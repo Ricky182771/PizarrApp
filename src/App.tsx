@@ -10,10 +10,13 @@ import Scoreboard from './components/Scoreboard'
 import ColorPickerPortal from './components/ColorPickerPortal'
 import ZoomControls from './components/ZoomControls'
 import TeamConfig, { type TeamSide } from './components/TeamConfig'
+import AnimationControls from './components/AnimationControls'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useToast } from './hooks/useToast'
 import { useZoomPan } from './hooks/useZoomPan'
 import { useHistory } from './hooks/useHistory'
+import { useAnimation } from './hooks/useAnimation'
+import { captureFrame } from './utils/animation'
 import {
   defaultTeam,
   changeFormation,
@@ -40,6 +43,7 @@ import {
   type ArrowItem,
   type ElementType,
   type TacticaGuardada,
+  type Frame,
 } from './types'
 
 /** Grid step (%) used when magnetic snapping is enabled. */
@@ -75,6 +79,7 @@ function App() {
       mostrarMarcador: saved?.mostrarMarcador ?? false,
       marcadorX: saved?.marcadorX ?? 50,
       marcadorY: saved?.marcadorY ?? 7,
+      frames: saved?.frames ? saved.frames.map((f) => ({ ...f })) : [],
     }
   })
 
@@ -92,6 +97,7 @@ function App() {
   const [mostrarMarcador, setMostrarMarcador] = useState(initialData.mostrarMarcador)
   const [marcadorX, setMarcadorX] = useState(initialData.marcadorX)
   const [marcadorY, setMarcadorY] = useState(initialData.marcadorY)
+  const [frames, setFrames] = useState<Frame[]>(initialData.frames)
 
   // UI state
   const [isTeamConfigOpen, setIsTeamConfigOpen] = useState(false)
@@ -175,10 +181,10 @@ function App() {
   const getCurrentTacticData = useCallback((): TacticaGuardada => ({
     local, visitante, colorLocal, colorVisitante, elements, arrows, tacticName,
     nombreLocal, nombreVisitante, golesLocal, golesVisitante, mostrarMarcador,
-    marcadorX, marcadorY,
+    marcadorX, marcadorY, frames,
   }), [local, visitante, colorLocal, colorVisitante, elements, arrows, tacticName,
     nombreLocal, nombreVisitante, golesLocal, golesVisitante, mostrarMarcador,
-    marcadorX, marcadorY])
+    marcadorX, marcadorY, frames])
 
   /* ── Autosave (debounced) — the "Autoguardado" badge is real now ──── */
   useEffect(() => {
@@ -221,6 +227,7 @@ function App() {
     if (saved.mostrarMarcador !== undefined) setMostrarMarcador(saved.mostrarMarcador)
     if (saved.marcadorX !== undefined) setMarcadorX(saved.marcadorX)
     if (saved.marcadorY !== undefined) setMarcadorY(saved.marcadorY)
+    setFrames(saved.frames ? saved.frames.map((f) => ({ ...f })) : [])
   }, [])
 
   /* ── Undo / Redo ──────────────────────────────────────────────────── */
@@ -574,6 +581,34 @@ function App() {
     showToast('🗑 Extras eliminados')
   }, [showToast])
 
+  /* ── Play animation (key frames + playback) ───────────────────────── */
+  const animation = useAnimation(frames, { local, visitante, elements })
+
+  const handleCaptureFrame = useCallback(() => {
+    setFrames((prev) => [...prev, captureFrame(local, visitante, elements)])
+    showToast('✓ Frame capturado')
+  }, [local, visitante, elements, showToast])
+
+  const handleDeleteFrame = useCallback((id: string) => {
+    setFrames((prev) => prev.filter((f) => f.id !== id))
+  }, [])
+
+  const handleMoveFrame = useCallback((id: string, dir: -1 | 1) => {
+    setFrames((prev) => {
+      const idx = prev.findIndex((f) => f.id === id)
+      const target = idx + dir
+      if (idx < 0 || target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[idx], next[target]] = [next[target], next[idx]]
+      return next
+    })
+  }, [])
+
+  const handleClearFrames = useCallback(() => {
+    setFrames([])
+    showToast('🗑 Animación borrada')
+  }, [showToast])
+
   /* ── Tactic Slots (save/load 3 tactics) ───────────────────────────── */
   const [slotNames, setSlotNames] = useState<[string, string, string]>(() => [
     getSlotName(0),
@@ -623,6 +658,11 @@ function App() {
   /* ── Derived rendering data ───────────────────────────────────────── */
   const snapStep = snapEnabled ? SNAP_STEP : undefined
 
+  // During playback/scrubbing render the interpolated board, else the live one
+  const displayLocal = animation.override?.local ?? local
+  const displayVisitante = animation.override?.visitante ?? visitante
+  const displayElements = animation.override?.elements ?? elements
+
   // Screen-space arrows/elements (mobile pitch is rotated 90°)
   const screenArrows = useMemo(
     () =>
@@ -642,8 +682,8 @@ function App() {
   )
 
   const screenElements = useMemo(
-    () => (isMobile ? elements.map((el) => ({ ...el, x: el.y, y: 100 - el.x })) : elements),
-    [elements, isMobile],
+    () => (isMobile ? displayElements.map((el) => ({ ...el, x: el.y, y: 100 - el.x })) : displayElements),
+    [displayElements, isMobile],
   )
 
   const scoreboard = mostrarMarcador && (
@@ -699,7 +739,7 @@ function App() {
             snapStep={snapStep}
           />
         ))}
-        {local.map((j) => (
+        {displayLocal.map((j) => (
           <FichaJugador
             key={`local-${j.numero}`}
             numero={j.numero}
@@ -716,7 +756,7 @@ function App() {
             snapStep={snapStep}
           />
         ))}
-        {visitante.map((j) => (
+        {displayVisitante.map((j) => (
           <FichaJugador
             key={`visit-${j.numero}`}
             numero={j.numero}
@@ -750,6 +790,27 @@ function App() {
       onAddPlayer={handleAddPlayer}
       onRemovePlayer={handleRemovePlayer}
       onAutoArrange={handleAutoArrange}
+    />
+  )
+
+  const animationContent = (
+    <AnimationControls
+      frames={frames}
+      isPlaying={animation.isPlaying}
+      progress={animation.progress}
+      maxProgress={animation.maxProgress}
+      speed={animation.speed}
+      onCaptureFrame={handleCaptureFrame}
+      onDeleteFrame={handleDeleteFrame}
+      onMoveFrame={handleMoveFrame}
+      onClearFrames={handleClearFrames}
+      onPlay={animation.play}
+      onPause={animation.pause}
+      onStop={animation.stop}
+      onSeek={animation.seek}
+      onSpeedChange={animation.setSpeed}
+      onScrubStart={animation.scrubStart}
+      onScrubEnd={animation.scrubEnd}
     />
   )
 
@@ -818,6 +879,7 @@ function App() {
           isTeamConfigOpen={isTeamConfigOpen}
           setIsTeamConfigOpen={setIsTeamConfigOpen}
           teamConfigContent={teamConfigContent}
+          animationContent={animationContent}
           mostrarMarcador={mostrarMarcador}
           setMostrarMarcador={setMostrarMarcador}
           slotNames={slotNames}
@@ -921,6 +983,7 @@ function App() {
         shareUrl={shareUrl}
         isCopied={isCopied}
         teamConfigContent={teamConfigContent}
+        animationContent={animationContent}
         mostrarMarcador={mostrarMarcador}
         setMostrarMarcador={setMostrarMarcador}
         slotNames={slotNames}
